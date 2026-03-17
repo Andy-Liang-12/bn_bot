@@ -152,6 +152,7 @@ class MatchTestApp:
         if not self.window_capture.find_window():
             print(f"WARNING: Window '{self.window_capture.window_name}' not found!")
             print("Make sure the game is running and visible.\n")
+            sys.exit(1)
         
         with keyboard.Listener(on_press=self.on_press) as listener:
             listener.join()
