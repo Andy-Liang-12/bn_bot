@@ -1,0 +1,26 @@
+{
+    "mission_name": "gantas_iron",
+    "troop_priority": [
+        "heavy_sl",
+        "tk"
+    ],
+    "enemy_priority": [
+        "dustwalker",
+        "dustwalker2",
+        "dustwalker3",
+        "firebreather",
+        "mammoth"
+    ],
+    "deployment": [
+        {
+            "troop": "heavy_sl",
+            "tile_index": 0
+        }
+    ],
+    "skill_priorities": {
+        "heavy_sl": [
+            1,
+            2
+        ]
+    }
+}

@@ -89,12 +89,69 @@ class TemplateMatcher:
                     size=(template.shape[1], template.shape[0])
                 )
             
-            logger.debug(f"Template {name} matched with {max_val:.3f} (threshold: {threshold})")
             return None
             
         except Exception as e:
             logger.error(f"Error matching template {name}: {e}")
             return None
+
+    def match_multiple(self, 
+                      screenshot: np.ndarray, 
+                      name: str, 
+                      threshold: Optional[float] = None) -> List[MatchResult]:
+        """Find all instances of a template using NMS to avoid overlapping matches."""
+        template = self._load_template(name)
+        if template is None:
+            return []
+            
+        if threshold is None:
+            threshold = get_template_threshold(name)
+            
+        try:
+            res = cv2.matchTemplate(screenshot, template, cv2.TM_CCOEFF_NORMED)
+            loc = np.where(res >= threshold)
+            
+            matches = []
+            h, w = template.shape[:2]
+            
+            # Convert to list of (x, y, confidence)
+            pts = []
+            for pt in zip(*loc[::-1]):
+                pts.append((pt[0], pt[1], float(res[pt[1], pt[0]])))
+            
+            # Simple Non-Maximum Suppression (group nearby points)
+            pts.sort(key=lambda x: x[2], reverse=True)
+            
+            while pts:
+                best = pts.pop(0)
+                matches.append(MatchResult(
+                    name=name,
+                    confidence=best[2],
+                    location=(best[0], best[1]),
+                    size=(w, h)
+                ))
+                # Remove any points too close to this match
+                pts = [p for p in pts if abs(p[0] - best[0]) > w/2 or abs(p[1] - best[1]) > h/2]
+                
+            return matches
+            
+        except Exception as e:
+            logger.error(f"Error in match_multiple for {name}: {e}")
+            return []
+
+    def match_category(self, screenshot: np.ndarray, category: str) -> List[MatchResult]:
+        """Find all matches for templates in a specific category."""
+        results = []
+        for name, info in TEMPLATES.items():
+            if info["category"] == category:
+                # For units/enemies, we use match_multiple
+                if category in ["enemies", "troops"]:
+                    results.extend(self.match_multiple(screenshot, name))
+                else:
+                    match = self.match_template(screenshot, name)
+                    if match:
+                        results.append(match)
+        return results
     
     def match_all_templates(self, screenshot: np.ndarray) -> List[MatchResult]:
         """Match all registered templates against the screenshot."""

@@ -9,11 +9,16 @@ import numpy as np
 from pynput import keyboard
 
 from config import (
-    TEST_KEY, EXIT_KEY, SCREENSHOTS_DIR, TEMPLATES_DIR,
+    SCREENSHOTS_DIR, TEMPLATES_DIR,
     SCREENSHOT_FORMAT, TIMESTAMP_FORMAT, LOGS_DIR
 )
 from window_capture import WindowCapture, WindowCaptureError
 from template_matcher import TemplateMatcher
+
+# Constants
+TEST_KEY = 't'
+MULTIPLE_TEST_KEY = 'm'
+EXIT_KEY = 'esc'
 
 logging.basicConfig(
     level=logging.INFO,
@@ -46,6 +51,9 @@ class MatchTestApp:
                 if key.char == TEST_KEY:
                     self._run_matching_test()
                     return
+                if key.char == MULTIPLE_TEST_KEY:
+                    self._run_multiple_matching_test()
+                    return
             
             if key == keyboard.Key.esc:
                 logger.info("Exit key pressed")
@@ -54,6 +62,47 @@ class MatchTestApp:
                 
         except Exception as e:
             logger.error(f"Error handling key press: {e}")
+
+    def _run_multiple_matching_test(self):
+        """Test match_multiple/match_category by finding all units on board."""
+        try:
+            logger.info("Running multiple matching test...")
+            print("\n" + "=" * 60)
+            print("Running Multiple Match Test (Board Scan)")
+            print("=" * 60)
+            
+            screenshot = self.window_capture.capture()
+            if screenshot is None:
+                print("✗ Failed to capture screenshot")
+                return
+
+            # Scan for categories
+            enemies = self.matcher.match_category(screenshot, "enemies")
+            troops = self.matcher.match_category(screenshot, "troops")
+            all_units = enemies + troops
+
+            if not all_units:
+                print("\n✗ No units found on board!")
+                return
+
+            print(f"\n✓ Found {len(enemies)} enemy(ies) and {len(troops)} troop(s):\n")
+            
+            for unit in all_units:
+                category = "Enemy" if unit in enemies else "Troop"
+                print(f"  • [{category}] {unit.name}")
+                print(f"    Confidence: {unit.confidence:.3f}")
+                print(f"    Location: {unit.location}")
+            
+            annotated = self.matcher.draw_matches(screenshot, all_units, 
+                                                  self.MATCH_COLOR, 
+                                                  self.RECT_THICKNESS)
+            
+            output_path = self._save_debug_image(annotated, all_units, "multiple")
+            print(f"\nAnnotated screenshot saved: {output_path}")
+            self._show_image_window(annotated, "Multiple Matches")
+
+        except Exception as e:
+            logger.exception(f"Multiple match test failed: {e}")
     
     def _run_matching_test(self):
         """Run template matching test on current screenshot."""
@@ -146,7 +195,8 @@ class MatchTestApp:
         
         print("\nControls:")
         print(f"  [{TEST_KEY}] - Run matching test")
-        print(f"  [ESC] - Exit")
+        print(f"  [{MULTIPLE_TEST_KEY}] - Run multiple match test")
+        print(f"  [{EXIT_KEY.upper()}] - Exit")
         print("\nWaiting for input...\n")
         
         if not self.window_capture.find_window():

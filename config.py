@@ -7,10 +7,6 @@ TEMPLATES_DIR = PROJECT_ROOT / "templates"
 SCREENSHOTS_DIR = PROJECT_ROOT / "screenshots"
 LOGS_DIR = PROJECT_ROOT / "logs"
 
-CAPTURE_KEY = 's'
-TEST_KEY = 't'
-EXIT_KEY = 'esc'
-
 WINDOW_NAME = "Battle Nations"
 
 DEFAULT_MATCH_THRESHOLD = 0.8
@@ -21,11 +17,11 @@ SCREENSHOT_FORMAT = "png"
 TIMESTAMP_FORMAT = "%Y%m%d_%H%M%S"
 
 CLICK_DELAY = 0.1
-ACTION_DELAY = 0.5
+ACTION_DELAY = 1.0
 BATTLE_ACTION_DELAY = 1.0
 STATE_CHECK_INTERVAL = 0.5
 MAX_STATE_RETRIES = 10
-STUCK_DETECTION_THRESHOLD = 30.0
+STUCK_DETECTION_THRESHOLD = 20.0
 
 TEMPLATES = {
     # Battle setup and flow
@@ -35,7 +31,8 @@ TEMPLATES = {
     "defeat": {"category": "battle", "threshold": 0.85},
     "sp_ok": {"category": "battle", "threshold": 0.85},
     "opp_tile": {"category": "battle", "threshold": 0.85},
-    "pass_button": {"category": "battle", "threshold": 0.85},
+    "pass_active": {"category": "battle", "threshold": 0.92},
+    "pass_inactive_gantas": {"category": "battle", "threshold": 0.92},
 
     # Troops
     "heavy_sl": {"category": "troops", "threshold": 0.85},
@@ -43,9 +40,8 @@ TEMPLATES = {
     # Enemies
     "mammoth": {"category": "enemies", "threshold": 0.85},
     "wild_boar": {"category": "enemies", "threshold": 0.85},
-    "dustwalker": {"category": "enemies", "threshold": 0.85},
+    "dustwalker1": {"category": "enemies", "threshold": 0.85},
     "dustwalker2": {"category": "enemies", "threshold": 0.85},
-    "dustwalker3": {"category": "enemies", "threshold": 0.85},
     "firebreather": {"category": "enemies", "threshold": 0.85},
 }
 
