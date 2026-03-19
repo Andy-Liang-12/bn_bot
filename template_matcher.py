@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import numpy as np
 import cv2
 
-from config import TemplateConfig, TEMPLATE_CONFIGS, MIN_MATCH_THRESHOLD
+from config import TEMPLATES, get_template_path, get_template_threshold
 
 logger = logging.getLogger(__name__)
 
@@ -40,66 +40,125 @@ class TemplateMatcher:
     def __init__(self):
         self._template_cache = {}
     
-    def _load_template(self, config: TemplateConfig) -> Optional[np.ndarray]:
+    def _load_template(self, name: str) -> Optional[np.ndarray]:
         """Load and cache a template image."""
-        if config.name in self._template_cache:
-            return self._template_cache[config.name]
+        if name in self._template_cache:
+            return self._template_cache[name]
         
-        if not config.path.exists():
-            logger.warning(f"Template not found: {config.path}")
+        template_path = get_template_path(name)
+        if not template_path.exists():
+            logger.warning(f"Template not found: {template_path}")
             return None
         
         try:
-            template = cv2.imread(str(config.path))
+            template = cv2.imread(str(template_path))
             if template is None:
-                logger.error(f"Failed to load template: {config.path}")
+                logger.error(f"Failed to load template: {template_path}")
                 return None
             
-            self._template_cache[config.name] = template
-            logger.debug(f"Loaded template: {config.name} ({template.shape[1]}x{template.shape[0]})")
+            self._template_cache[name] = template
+            logger.debug(f"Loaded template: {name} ({template.shape[1]}x{template.shape[0]})")
             return template
             
         except Exception as e:
-            logger.error(f"Error loading template {config.name}: {e}")
+            logger.error(f"Error loading template {name}: {e}")
             return None
     
     def match_template(self, 
                       screenshot: np.ndarray, 
-                      config: TemplateConfig) -> Optional[MatchResult]:
+                      name: str) -> Optional[MatchResult]:
         """Match a single template against the screenshot."""
-        template = self._load_template(config)
+        template = self._load_template(name)
         if template is None:
             return None
         
         if screenshot.shape[0] < template.shape[0] or screenshot.shape[1] < template.shape[1]:
-            logger.warning(f"Screenshot smaller than template {config.name}")
+            logger.warning(f"Screenshot smaller than template {name}")
             return None
         
         try:
             result = cv2.matchTemplate(screenshot, template, cv2.TM_CCOEFF_NORMED)
             min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
             
-            if max_val >= config.threshold:
+            threshold = get_template_threshold(name)
+            if max_val >= threshold:
                 return MatchResult(
-                    name=config.name,
+                    name=name,
                     confidence=float(max_val),
                     location=max_loc,
                     size=(template.shape[1], template.shape[0])
                 )
             
-            logger.debug(f"Template {config.name} matched with {max_val:.3f} (threshold: {config.threshold})")
             return None
             
         except Exception as e:
-            logger.error(f"Error matching template {config.name}: {e}")
+            logger.error(f"Error matching template {name}: {e}")
             return None
+
+    def match_multiple(self, 
+                      screenshot: np.ndarray, 
+                      name: str, 
+                      threshold: Optional[float] = None) -> List[MatchResult]:
+        """Find all instances of a template using NMS to avoid overlapping matches."""
+        template = self._load_template(name)
+        if template is None:
+            return []
+            
+        if threshold is None:
+            threshold = get_template_threshold(name)
+            
+        try:
+            res = cv2.matchTemplate(screenshot, template, cv2.TM_CCOEFF_NORMED)
+            loc = np.where(res >= threshold)
+            
+            matches = []
+            h, w = template.shape[:2]
+            
+            # Convert to list of (x, y, confidence)
+            pts = []
+            for pt in zip(*loc[::-1]):
+                pts.append((pt[0], pt[1], float(res[pt[1], pt[0]])))
+            
+            # Simple Non-Maximum Suppression (group nearby points)
+            pts.sort(key=lambda x: x[2], reverse=True)
+            
+            while pts:
+                best = pts.pop(0)
+                matches.append(MatchResult(
+                    name=name,
+                    confidence=best[2],
+                    location=(best[0], best[1]),
+                    size=(w, h)
+                ))
+                # Remove any points too close to this match
+                pts = [p for p in pts if abs(p[0] - best[0]) > w/2 or abs(p[1] - best[1]) > h/2]
+                
+            return matches
+            
+        except Exception as e:
+            logger.error(f"Error in match_multiple for {name}: {e}")
+            return []
+
+    def match_category(self, screenshot: np.ndarray, category: str) -> List[MatchResult]:
+        """Find all matches for templates in a specific category."""
+        results = []
+        for name, info in TEMPLATES.items():
+            if info["category"] == category:
+                # For units/enemies, we use match_multiple
+                if category in ["enemies", "troops"]:
+                    results.extend(self.match_multiple(screenshot, name))
+                else:
+                    match = self.match_template(screenshot, name)
+                    if match:
+                        results.append(match)
+        return results
     
     def match_all_templates(self, screenshot: np.ndarray) -> List[MatchResult]:
         """Match all registered templates against the screenshot."""
         matches = []
         
-        for config in TEMPLATE_CONFIGS.values():
-            match = self.match_template(screenshot, config)
+        for name in TEMPLATES.keys():
+            match = self.match_template(screenshot, name)
             if match:
                 matches.append(match)
         
@@ -112,11 +171,11 @@ class TemplateMatcher:
         best_match = None
         
         for name in template_names:
-            if name not in TEMPLATE_CONFIGS:
+            if name not in TEMPLATES:
                 logger.warning(f"Unknown template: {name}")
                 continue
             
-            match = self.match_template(screenshot, TEMPLATE_CONFIGS[name])
+            match = self.match_template(screenshot, name)
             if match and (best_match is None or match.confidence > best_match.confidence):
                 best_match = match
         

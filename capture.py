@@ -8,10 +8,14 @@ import cv2
 from pynput import keyboard
 
 from config import (
-    CAPTURE_KEY, EXIT_KEY, SCREENSHOTS_DIR, 
-    SCREENSHOT_FORMAT, TIMESTAMP_FORMAT, LOGS_DIR
+    SCREENSHOTS_DIR, SCREENSHOT_FORMAT, 
+    TIMESTAMP_FORMAT, LOGS_DIR
 )
 from window_capture import WindowCapture, WindowCaptureError
+
+# Constants
+CAPTURE_KEY = 's'
+EXIT_KEY = 'esc'
 
 logging.basicConfig(
     level=logging.INFO,
@@ -44,6 +48,7 @@ class CaptureApp:
                     self._capture_screenshot()
                     return
             
+            # Use the global EXIT_KEY constant
             if key == keyboard.Key.esc:
                 logger.info("Exit key pressed")
                 self.running = False
@@ -80,7 +85,7 @@ class CaptureApp:
         print(f"Screenshots saved to: {SCREENSHOTS_DIR}")
         print("\nControls:")
         print(f"  [{CAPTURE_KEY}] - Capture screenshot")
-        print(f"  [ESC] - Exit")
+        print(f"  [{EXIT_KEY.upper()}] - Exit")
         print("\nWaiting for input...\n")
         
         if not self.window_capture.find_window():
