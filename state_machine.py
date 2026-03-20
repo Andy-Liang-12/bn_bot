@@ -12,8 +12,8 @@ import numpy as np
 from pynput import keyboard
 
 from config import (
-    STATE_CHECK_INTERVAL, ACTION_DELAY, 
-    BATTLE_ACTION_DELAY, STUCK_DETECTION_THRESHOLD
+    STATE_CHECK_INTERVAL, SHORT_DELAY, 
+    LONG_DELAY, STUCK_DETECTION_THRESHOLD
 )
 from window_capture import WindowCapture
 from template_matcher import TemplateMatcher, MatchResult
@@ -72,8 +72,12 @@ class BattleStateMachine:
 
     def determine_state(self, screenshot: np.ndarray) -> Tuple[BattleState, Optional[MatchResult]]:
         """Identify state and the match that triggered it."""
-        
-        for btn_name in ["finish_ok", "sp_ok", "victory", "defeat"]:
+                    
+        match = self.matcher.match_template(screenshot, "pass_active")
+        if match:
+            return BattleState.EXECUTE_MOVE, match
+            
+        for btn_name in ["finish_ok", "sp_ok"]:
             match = self.matcher.match_template(screenshot, btn_name)
             if match:
                 return BattleState.POST_BATTLE, match
@@ -81,10 +85,6 @@ class BattleStateMachine:
         match = self.matcher.match_template(screenshot, "fight_button")
         if match:
             return BattleState.PRE_BATTLE, match
-            
-        match = self.matcher.match_template(screenshot, "pass_active")
-        if match:
-            return BattleState.EXECUTE_MOVE, match
 
         match = self.matcher.match_template(screenshot, "pass_inactive_gantas")
         if match:
@@ -153,7 +153,7 @@ class BattleStateMachine:
         
         # 1. Execute clicks
         self.click_coords(troop_dict["pos"], troop_dict["name"])
-        time.sleep(ACTION_DELAY)
+        time.sleep(SHORT_DELAY)
         # (Assuming skill selection logic will go here once templates are available)
         self.click_match(enemy)
         
@@ -172,7 +172,7 @@ class BattleStateMachine:
             }
             logger.info(f"  Action pending confirmation for {troop_dict['name']}")
             
-        time.sleep(BATTLE_ACTION_DELAY)
+        time.sleep(LONG_DELAY)
 
     def step(self):
         """Main Observe-Think-Act iteration."""
@@ -212,7 +212,7 @@ class BattleStateMachine:
             # Execute behavior
             if self.state == BattleState.PRE_BATTLE and match:
                 self.click_match(match)
-                time.sleep(ACTION_DELAY)
+                time.sleep(SHORT_DELAY)
 
             elif self.state == BattleState.EXECUTE_MOVE:
                 # 1. Discover troops if needed
@@ -245,8 +245,11 @@ class BattleStateMachine:
 
             elif self.state == BattleState.POST_BATTLE and match:
                 if match.name in ["finish_ok", "sp_ok"]:
+                    # Two buttons to click in the same place. No need to template match both
                     self.click_match(match)
-                    time.sleep(ACTION_DELAY)
+                    time.sleep(0.1)
+                    self.click_match(match)
+                    time.sleep(SHORT_DELAY)
 
         except Exception as e:
             logger.error(f"Error in state machine step: {e}")

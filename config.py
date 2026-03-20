@@ -17,9 +17,9 @@ SCREENSHOT_FORMAT = "png"
 TIMESTAMP_FORMAT = "%Y%m%d_%H%M%S"
 
 CLICK_DELAY = 0.1
-ACTION_DELAY = 1.0
-BATTLE_ACTION_DELAY = 0.5
-STATE_CHECK_INTERVAL = 0.5
+SHORT_DELAY = 0.2
+LONG_DELAY = 0.4
+STATE_CHECK_INTERVAL = 0.2
 MAX_STATE_RETRIES = 10
 STUCK_DETECTION_THRESHOLD = 20.0
 
@@ -27,8 +27,9 @@ TEMPLATES = {
     # Battle setup and flow
     "fight_button": {"category": "battle", "threshold": 0.85},
     "finish_ok": {"category": "battle", "threshold": 0.85},
-    "victory": {"category": "battle", "threshold": 0.85},
-    "defeat": {"category": "battle", "threshold": 0.85},
+    # no reason to search for victory, assume defeat is impossible
+    # "victory": {"category": "battle", "threshold": 0.85},
+    # "defeat": {"category": "battle", "threshold": 0.85},
     "sp_ok": {"category": "battle", "threshold": 0.85},
     "opp_tile": {"category": "battle", "threshold": 0.85},
     "pass_active": {"category": "battle", "threshold": 0.92},
