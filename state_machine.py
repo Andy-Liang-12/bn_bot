@@ -42,198 +42,240 @@ class BattleStateMachine:
         self.last_state_change = time.time()
         self.running = False
         
+        # Configuration
         self.mission_config = self._load_config(mission_config_path)
+        self.troop_data = self._load_config("troops.json")
+        
+        # State Tracking
+        self.deployed_troops = []  # List of dicts: {"name", "pos", "cooldowns", "has_acted"}
+        self.troops_discovered = False
+        self.was_animating = False # Used to detect turn transitions
+        self.pending_action = None # Used to confirm cooldowns only after animation starts
+        
         logger.info(f"Initialized State Machine with mission: {self.mission_config.get('mission_name')}")
 
     def _load_config(self, path: str) -> Dict[str, Any]:
-        """Load the mission configuration."""
+        """Load a JSON configuration file."""
         try:
             with open(path, 'r') as f:
                 return json.load(f)
         except Exception as e:
-            logger.error(f"Failed to load mission config: {e}")
-            return {"troop_priority": [], "enemy_priority": []}
+            logger.error(f"Failed to load config {path}: {e}")
+            return {}
 
     def on_press(self, key):
         """Handle key press events to stop the state machine."""
         if key == EXIT_KEY:
             logger.info("Exit key pressed. Stopping state machine...")
             self.running = False
-            return False  # Stop listener
+            return False
 
     def determine_state(self, screenshot: np.ndarray) -> Tuple[BattleState, Optional[MatchResult]]:
-        """Identify state and the match that triggered it to avoid redundant matching."""
+        """Identify state and the match that triggered it."""
         
-        # 1. Post-Battle Sequence (Priority to buttons)
         for btn_name in ["finish_ok", "sp_ok", "victory", "defeat"]:
             match = self.matcher.match_template(screenshot, btn_name)
             if match:
                 return BattleState.POST_BATTLE, match
             
-        # 2. Pre-Battle
         match = self.matcher.match_template(screenshot, "fight_button")
         if match:
             return BattleState.PRE_BATTLE, match
             
-        # 3. In-Battle (Player Turn)
         match = self.matcher.match_template(screenshot, "pass_active")
         if match:
-            # If pass_active is visible, we can act.
             return BattleState.EXECUTE_MOVE, match
 
-        # 4. In-Battle (Animating/Enemy Turn)
         match = self.matcher.match_template(screenshot, "pass_inactive_gantas")
         if match:
-            # If pass is inactive, something is happening.
             return BattleState.ANIMATING, match
 
-        # 5. Fallback
         return BattleState.UNKNOWN, None
 
-    def click_match(self, match: MatchResult):
-        """Execute a resilient click using mousedown/mouseup."""
+    def click_coords(self, coords: Tuple[int, int], name: str = "Coordinate"):
+        """Execute a resilient click on absolute coordinates relative to the window."""
         region = self.window_capture.get_window_region()
-        if not region:
-            logger.error("Cannot click: Window region not found")
-            return
+        if not region: return
         
         left, top, _, _ = region
-        x, y = match.center
+        x, y = coords
         screen_x, screen_y = left + x, top + y
         
-        logger.info(f"Clicking {match.name} at ({screen_x}, {screen_y})")
-        
-        # click doesn't work, mousedown/mouseup does
+        logger.info(f"Clicking {name} at ({screen_x}, {screen_y})")
         pyautogui.moveTo(screen_x, screen_y, duration=0.1)
         pyautogui.mouseDown()
         time.sleep(0.1) 
         pyautogui.mouseUp()
 
-    def shoot(self, troop: MatchResult, enemy: MatchResult):
-        """Execute a shot from a troop to an enemy."""
-        logger.info(f"ACT: {troop.name} attacks {enemy.name}")
-        # 1. Select troop
-        self.click_match(troop)
+    def click_match(self, match: MatchResult):
+        """Wrapper for click_coords using a MatchResult."""
+        self.click_coords(match.center, match.name)
+
+    def _discover_troops(self, screenshot: np.ndarray):
+        """Scan board once to identify friendly unit positions."""
+        logger.info("Discovery Phase: Scanning for friendly units...")
+        matches = self.matcher.match_category(screenshot, "troops")
+        
+        self.deployed_troops = []
+        for m in matches:
+            logger.info(f"Discovered [{m.name}] at {m.center}")
+            self.deployed_troops.append({
+                "name": m.name,
+                "pos": m.center,
+                "cooldowns": {"1": 0, "2": 0, "3": 0},
+                "has_acted": False
+            })
+        self.troops_discovered = True
+
+    def _reset_battle_state(self):
+        """Reset temporary battle variables for a new encounter."""
+        logger.info("--- Resetting battle state for new encounter ---")
+        self.pending_action = None
+        self.was_animating = False
+        for troop in self.deployed_troops:
+            troop["has_acted"] = False
+            for skill_id in troop["cooldowns"]:
+                troop["cooldowns"][skill_id] = 0
+
+    def _on_turn_start(self):
+        """Reset troop 'has_acted' flags and decrement cooldowns."""
+        logger.info("--- New Player Turn Started ---")
+        for troop in self.deployed_troops:
+            troop["has_acted"] = False
+            for skill_id in list(troop["cooldowns"].keys()):
+                if troop["cooldowns"][skill_id] > 0:
+                    troop["cooldowns"][skill_id] -= 1
+                    logger.info(f"  [{troop['name']}] Skill {skill_id} CD reduced to {troop['cooldowns'][skill_id]}")
+
+    def shoot(self, troop_dict: Dict, enemy: MatchResult, skill_id: str):
+        """Execute attack and prepare for cooldown confirmation."""
+        logger.info(f"ACT: {troop_dict['name']} (Skill {skill_id}) -> {enemy.name}")
+        
+        # 1. Execute clicks
+        self.click_coords(troop_dict["pos"], troop_dict["name"])
         time.sleep(ACTION_DELAY)
-        # 2. Select enemy
+        # (Assuming skill selection logic will go here once templates are available)
         self.click_match(enemy)
+        
+        # 2. Mark as acted
+        troop_dict["has_acted"] = True
+        
+        # 3. Prepare Pending Action (Confirm CD only if we see ANIMATING)
+        unit_data = self.troop_data.get(troop_dict["name"], {})
+        base_cd = unit_data.get("skills", {}).get(skill_id, {}).get("cooldown", 0)
+        
+        if base_cd > 0:
+            self.pending_action = {
+                "troop": troop_dict,
+                "skill_id": skill_id,
+                "base_cd": base_cd
+            }
+            logger.info(f"  Action pending confirmation for {troop_dict['name']}")
+            
         time.sleep(BATTLE_ACTION_DELAY)
 
-    def _get_priority_match(self, matches: List[MatchResult], priority_list: List[str]) -> Optional[MatchResult]:
-        """Find the match that appears earliest in the priority list."""
-        for p_name in priority_list:
-            for m in matches:
-                # Direct name match or starts with (for variations)
-                if m.name == p_name or m.name.startswith(p_name):
-                    return m
-        return None
-
     def step(self):
-        """Detect state and execute appropriate actions."""
+        """Main Observe-Think-Act iteration."""
         try:
             screenshot = self.window_capture.capture()
-            if screenshot is None:
-                return
+            if screenshot is None: return
 
             new_state, match = self.determine_state(screenshot)
             
+            # State Transition Logging
             if new_state != self.state:
                 match_name = match.name if match else "None"
                 logger.info(f"State: {self.state.name} -> {new_state.name} (Trigger: {match_name})")
+                
+                # Reset state when a new battle is detected
+                if new_state == BattleState.PRE_BATTLE:
+                    self._reset_battle_state()
+
+                # Confirm Pending Action if we enter ANIMATING
+                if new_state == BattleState.ANIMATING and self.pending_action:
+                    troop = self.pending_action["troop"]
+                    skill_id = self.pending_action["skill_id"]
+                    base_cd = self.pending_action["base_cd"]
+                    
+                    troop["cooldowns"][skill_id] = base_cd
+                    logger.info(f"  CONFIRMED: {troop['name']} Skill {skill_id} CD set to {base_cd}")
+                    self.pending_action = None
+
+                # Turn Start Detection: Transitioning from Animating (Enemy) back to Move (Player)
+                if new_state == BattleState.EXECUTE_MOVE and self.was_animating:
+                    self._on_turn_start()
+                
+                self.was_animating = (new_state == BattleState.ANIMATING)
                 self.state = new_state
                 self.last_state_change = time.time()
-            
-            # Stuck Detection
-            if time.time() - self.last_state_change > STUCK_DETECTION_THRESHOLD:
-                logger.warning(f"STUCK in {self.state.name}! Resetting timer.")
-                self.last_state_change = time.time()
 
-            # Execute behavior based on current state
+            # Execute behavior
             if self.state == BattleState.PRE_BATTLE and match:
                 self.click_match(match)
                 time.sleep(ACTION_DELAY)
 
             elif self.state == BattleState.EXECUTE_MOVE:
-                # 1. Identify Board State
-                enemies = self.matcher.match_category(screenshot, "enemies")
-                troops = self.matcher.match_category(screenshot, "troops")
-                
-                if enemies:
-                    logger.info(f"Found Enemies: {', '.join([e.name for e in enemies])}")
-                if troops:
-                    logger.info(f"Found Troops: {', '.join([t.name for t in troops])}")
+                # 1. Discover troops if needed
+                if not self.troops_discovered:
+                    self._discover_troops(screenshot)
+                    self._on_turn_start() # Initialize flags for Turn 1
 
-                # 2. Prioritize
-                troop_prio = self.mission_config.get("troop_priority", [])
+                # 2. Identify Enemies
+                enemies = self.matcher.match_category(screenshot, "enemies")
+                if enemies:
+                    logger.debug(f"Detected Enemies: {', '.join([e.name for e in enemies])}")
+
+                # 3. Find first ready troop that hasn't acted
                 enemy_prio = self.mission_config.get("enemy_priority", [])
-                
-                best_troop = self._get_priority_match(troops, troop_prio)
                 best_enemy = self._get_priority_match(enemies, enemy_prio)
 
-                if best_troop and best_enemy:
-                    self.shoot(best_troop, best_enemy)
-                else:
-                    if not best_troop: logger.debug("No priority troops detected.")
-                    if not best_enemy: logger.debug("No priority enemies detected.")
+                if best_enemy:
+                    for troop in self.deployed_troops:
+                        if not troop["has_acted"]:
+                            # Check preferred skill (currently first in priority list)
+                            prio_skills = self.mission_config.get("skill_priorities", {}).get(troop["name"], ["1"])
+                            skill_id = str(prio_skills[0])
+                            
+                            if troop["cooldowns"].get(skill_id, 0) == 0:
+                                self.shoot(troop, best_enemy, skill_id)
+                                return # Finish step to allow state to settle
+                            else:
+                                logger.debug(f"[{troop['name']}] Skill {skill_id} on cooldown, skipping...")
+                                troop["has_acted"] = True # Skip for this turn
 
             elif self.state == BattleState.POST_BATTLE and match:
                 if match.name in ["finish_ok", "sp_ok"]:
                     self.click_match(match)
                     time.sleep(ACTION_DELAY)
-                
-                if match.name == "sp_ok":
-                    logger.info("Mission sequence complete.")
-
-            elif self.state == BattleState.ANIMATING:
-                time.sleep(STATE_CHECK_INTERVAL)
 
         except Exception as e:
             logger.error(f"Error in state machine step: {e}")
             time.sleep(1)
 
-    def run(self):
-        """Start the main execution loop."""
-        if not self.window_capture.find_window():
-            logger.error("Window 'Battle Nations' not found. Ensure the game is running.")
-            print("\n✗ Error: Window 'Battle Nations' not found.")
-            return
+    def _get_priority_match(self, matches: List[MatchResult], priority_list: List[str]) -> Optional[MatchResult]:
+        for p_name in priority_list:
+            for m in matches:
+                if m.name == p_name or m.name.startswith(p_name):
+                    return m
+        return None
 
+    def run(self):
+        if not self.window_capture.find_window(): return
         self.running = True
-        logger.info("Battle State Machine Active.")
-        print("\n" + "=" * 60)
-        print("Battle State Machine Active")
-        print("Press [ESC] to stop at any time")
-        print("=" * 60 + "\n")
-        
-        # Start the keyboard listener in a non-blocking way
+        logger.info("Battle State Machine Active. Press [ESC] to stop.")
         listener = keyboard.Listener(on_press=self.on_press)
         listener.start()
-        
         try:
             while self.running:
                 self.step()
                 time.sleep(STATE_CHECK_INTERVAL)
-        except KeyboardInterrupt:
-            logger.info("Stopped by user via Ctrl+C.")
         finally:
             self.running = False
             listener.stop()
-            logger.info("Battle State Machine stopped.")
-            print("\nBattle State Machine stopped.")
 
 if __name__ == "__main__":
     from config import LOGS_DIR
-    
-    # Ensure logs directory exists
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
-    
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler(LOGS_DIR / 'state_machine.log'),
-            logging.StreamHandler(sys.stdout)
-        ]
-    )
-    fsm = BattleStateMachine()
-    fsm.run()
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s',
+                        handlers=[logging.FileHandler(LOGS_DIR / 'state_machine.log'), logging.StreamHandler(sys.stdout)])
+    BattleStateMachine().run()

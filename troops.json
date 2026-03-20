@@ -1,0 +1,26 @@
+{
+    "heavy": {
+        "skills": {
+            "1": {
+                "cooldown": 3
+            },
+            "2": {
+                "cooldown": 3
+            }
+        }
+    },
+    "tk": {
+        "skills": {
+            "1": {
+                "cooldown": 9
+            }
+        }
+    },
+    "heavy_tank": {
+        "skills": {
+            "1": {
+                "cooldown": 2
+            }
+        }
+    }
+}

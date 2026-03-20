@@ -18,7 +18,7 @@ TIMESTAMP_FORMAT = "%Y%m%d_%H%M%S"
 
 CLICK_DELAY = 0.1
 ACTION_DELAY = 1.0
-BATTLE_ACTION_DELAY = 1.0
+BATTLE_ACTION_DELAY = 0.5
 STATE_CHECK_INTERVAL = 0.5
 MAX_STATE_RETRIES = 10
 STUCK_DETECTION_THRESHOLD = 20.0
@@ -35,7 +35,9 @@ TEMPLATES = {
     "pass_inactive_gantas": {"category": "battle", "threshold": 0.92},
 
     # Troops
-    "heavy_sl": {"category": "troops", "threshold": 0.85},
+    "heavy": {"category": "troops", "threshold": 0.85},
+    "tk": {"category": "troops", "threshold": 0.85},
+    "heavy_tank": {"category": "troops", "threshold": 0.85},
 
     # Enemies
     "mammoth": {"category": "enemies", "threshold": 0.85},
