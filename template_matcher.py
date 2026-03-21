@@ -35,13 +35,13 @@ class MatchResult:
 
 
 class TemplateMatcher:
-    """Handles template matching operations."""
+    """Handles template matching operations optimized for grayscale speed."""
     
     def __init__(self):
         self._template_cache = {}
     
     def _load_template(self, name: str) -> Optional[np.ndarray]:
-        """Load and cache a template image."""
+        """Load and cache a template image in grayscale."""
         if name in self._template_cache:
             return self._template_cache[name]
         
@@ -51,18 +51,25 @@ class TemplateMatcher:
             return None
         
         try:
-            template = cv2.imread(str(template_path))
+            # Load as grayscale for significant performance boost
+            template = cv2.imread(str(template_path), cv2.IMREAD_GRAYSCALE)
             if template is None:
                 logger.error(f"Failed to load template: {template_path}")
                 return None
             
             self._template_cache[name] = template
-            logger.debug(f"Loaded template: {name} ({template.shape[1]}x{template.shape[0]})")
+            logger.debug(f"Loaded template (Grayscale): {name} ({template.shape[1]}x{template.shape[0]})")
             return template
             
         except Exception as e:
             logger.error(f"Error loading template {name}: {e}")
             return None
+
+    def _get_grayscale(self, image: np.ndarray) -> np.ndarray:
+        """Helper to ensure an image is grayscale."""
+        if len(image.shape) == 3:
+            return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        return image
     
     def match_template(self, 
                       screenshot: np.ndarray, 
@@ -77,7 +84,10 @@ class TemplateMatcher:
             return None
         
         try:
-            result = cv2.matchTemplate(screenshot, template, cv2.TM_CCOEFF_NORMED)
+            # Ensure both are grayscale for matching
+            gray_screenshot = self._get_grayscale(screenshot)
+            
+            result = cv2.matchTemplate(gray_screenshot, template, cv2.TM_CCOEFF_NORMED)
             min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
             
             threshold = get_template_threshold(name)
@@ -108,18 +118,19 @@ class TemplateMatcher:
             threshold = get_template_threshold(name)
             
         try:
-            res = cv2.matchTemplate(screenshot, template, cv2.TM_CCOEFF_NORMED)
+            # Ensure grayscale for matching
+            gray_screenshot = self._get_grayscale(screenshot)
+            
+            res = cv2.matchTemplate(gray_screenshot, template, cv2.TM_CCOEFF_NORMED)
             loc = np.where(res >= threshold)
             
             matches = []
             h, w = template.shape[:2]
             
-            # Convert to list of (x, y, confidence)
             pts = []
             for pt in zip(*loc[::-1]):
                 pts.append((pt[0], pt[1], float(res[pt[1], pt[0]])))
             
-            # Simple Non-Maximum Suppression (group nearby points)
             pts.sort(key=lambda x: x[2], reverse=True)
             
             while pts:
@@ -130,7 +141,6 @@ class TemplateMatcher:
                     location=(best[0], best[1]),
                     size=(w, h)
                 ))
-                # Remove any points too close to this match
                 pts = [p for p in pts if abs(p[0] - best[0]) > w/2 or abs(p[1] - best[1]) > h/2]
                 
             return matches
@@ -142,13 +152,16 @@ class TemplateMatcher:
     def match_category(self, screenshot: np.ndarray, category: str) -> List[MatchResult]:
         """Find all matches for templates in a specific category."""
         results = []
+        # Pre-convert screenshot to grayscale once per category scan for efficiency
+        gray_screenshot = self._get_grayscale(screenshot)
+        
         for name, info in TEMPLATES.items():
             if info["category"] == category:
-                # For units/enemies, we use match_multiple
                 if category in ["enemies", "troops"]:
-                    results.extend(self.match_multiple(screenshot, name))
+                    # match_multiple will handle its own grayscale but passing gray_screenshot is fine
+                    results.extend(self.match_multiple(gray_screenshot, name))
                 else:
-                    match = self.match_template(screenshot, name)
+                    match = self.match_template(gray_screenshot, name)
                     if match:
                         results.append(match)
         return results
@@ -156,9 +169,10 @@ class TemplateMatcher:
     def match_all_templates(self, screenshot: np.ndarray) -> List[MatchResult]:
         """Match all registered templates against the screenshot."""
         matches = []
+        gray_screenshot = self._get_grayscale(screenshot)
         
         for name in TEMPLATES.keys():
-            match = self.match_template(screenshot, name)
+            match = self.match_template(gray_screenshot, name)
             if match:
                 matches.append(match)
         
@@ -169,13 +183,14 @@ class TemplateMatcher:
                        template_names: List[str]) -> Optional[MatchResult]:
         """Find the best match among specified templates."""
         best_match = None
+        gray_screenshot = self._get_grayscale(screenshot)
         
         for name in template_names:
             if name not in TEMPLATES:
                 logger.warning(f"Unknown template: {name}")
                 continue
             
-            match = self.match_template(screenshot, name)
+            match = self.match_template(gray_screenshot, name)
             if match and (best_match is None or match.confidence > best_match.confidence):
                 best_match = match
         
