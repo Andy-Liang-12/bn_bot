@@ -52,6 +52,10 @@ class BattleStateMachine:
         self.was_animating = False # Used to detect turn transitions
         self.pending_action = None # Used to confirm cooldowns only after animation starts
         
+        # Performance Optimizations
+        self.ui_roi_cache = {}    # Stores (x, y, w, h) for static buttons
+        self.roi_padding = 20     # Padding factor for search boxes
+        
         logger.info(f"Initialized State Machine with mission: {self.mission_config.get('mission_name')}")
 
     def _load_config(self, path: str) -> Dict[str, Any]:
@@ -70,26 +74,60 @@ class BattleStateMachine:
             self.running = False
             return False
 
+    def _check_cached_roi(self, screenshot: np.ndarray, name: str) -> Optional[MatchResult]:
+        """Attempt a fast match using only the cached ROI."""
+        roi = self.ui_roi_cache.get(name)
+        if roi:
+            return self.matcher.match_template(screenshot, name, roi=roi)
+        return None
+
+    def _full_scan_and_cache(self, screenshot: np.ndarray, name: str) -> Optional[MatchResult]:
+        """Perform a full-screen scan and cache the location if found."""
+        match = self.matcher.match_template(screenshot, name, roi=None)
+        if match:
+            mx, my = match.location
+            mw, mh = match.size
+            sh, sw = screenshot.shape[:2]
+            rx = max(0, mx - self.roi_padding)
+            ry = max(0, my - self.roi_padding)
+            rw = min(mw + 2 * self.roi_padding, sw - rx)
+            rh = min(mh + 2 * self.roi_padding, sh - ry)
+            self.ui_roi_cache[name] = (rx, ry, rw, rh)
+            logger.info(f"Cached ROI for {name} at {self.ui_roi_cache[name]}")
+        return match
+
     def determine_state(self, screenshot: np.ndarray) -> Tuple[BattleState, Optional[MatchResult]]:
-        """Identify state and the match that triggered it."""
-                    
-        match = self.matcher.match_template(screenshot, "pass_active")
-        if match:
-            return BattleState.EXECUTE_MOVE, match
-            
-        for btn_name in ["finish_ok", "sp_ok"]:
-            match = self.matcher.match_template(screenshot, btn_name)
+        """Identify state using a 2-phase approach: Fast ROI checks, then Full Scans."""
+        
+        ui_checks = [
+            ("finish_ok", BattleState.POST_BATTLE),
+            ("sp_ok", BattleState.POST_BATTLE),
+            ("fight_button", BattleState.PRE_BATTLE),
+            ("pass_active", BattleState.EXECUTE_MOVE),
+            ("pass_inactive_gantas", BattleState.ANIMATING)
+        ]
+
+        # Phase 1: Fast ROI Checks
+        # Only check templates that we have previously found and cached.
+        for name, state in ui_checks:
+            if name in self.ui_roi_cache:
+                match = self._check_cached_roi(screenshot, name)
+                if match:
+                    return state, match
+
+        # Phase 2: Full Scans
+        # If we reach here, either it's the start of the script (no cache),
+        # or the game state changed and the old UI element is gone.
+        if len(self.ui_roi_cache) == 5:
+            logger.info("ROI checks failed (State likely changed). Falling back to full scans.")
+
+        for name, state in ui_checks:
+            # logger.info(f"Running full scan and ROI caching for name: {name} and state: {state}")
+            match = self._full_scan_and_cache(screenshot, name)
             if match:
-                return BattleState.POST_BATTLE, match
-            
-        match = self.matcher.match_template(screenshot, "fight_button")
-        if match:
-            return BattleState.PRE_BATTLE, match
+                return state, match
 
-        match = self.matcher.match_template(screenshot, "pass_inactive_gantas")
-        if match:
-            return BattleState.ANIMATING, match
-
+        # Phase 3: Unknown State
         return BattleState.UNKNOWN, None
 
     def click_coords(self, coords: Tuple[int, int], name: str = "Coordinate"):
@@ -185,7 +223,8 @@ class BattleStateMachine:
             # State Transition Logging
             if new_state != self.state:
                 match_name = match.name if match else "None"
-                logger.info(f"State: {self.state.name} -> {new_state.name} (Trigger: {match_name})")
+                roi_tag = " (ROI used)" if match and match.roi_used else ""
+                logger.info(f"State: {self.state.name} -> {new_state.name} (Trigger: {match_name}{roi_tag})")
                 
                 # Reset state when a new battle is detected
                 if new_state == BattleState.PRE_BATTLE:
