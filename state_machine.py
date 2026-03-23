@@ -20,6 +20,8 @@ from template_matcher import TemplateMatcher, MatchResult
 
 # Constants
 EXIT_KEY = keyboard.Key.esc
+PAUSE_KEY = 'p'
+UNPAUSE_KEY = 'u'
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +43,7 @@ class BattleStateMachine:
         self.state = BattleState.UNKNOWN
         self.last_state_change = time.time()
         self.running = False
+        self.paused = False
         
         # Configuration
         self.mission_config = self._load_config(mission_config_path)
@@ -68,11 +71,23 @@ class BattleStateMachine:
             return {}
 
     def on_press(self, key):
-        """Handle key press events to stop the state machine."""
+        """Handle key press events to stop or pause the state machine."""
         if key == EXIT_KEY:
             logger.info("Exit key pressed. Stopping state machine...")
             self.running = False
             return False
+        
+        elif hasattr(key, 'char') and key.char:
+            char = key.char.lower()
+
+            if char == PAUSE_KEY and not self.paused:
+                self.paused = True
+                logger.info("Bot PAUSED. Press 'u' to resume.")
+                print("\n!! Bot PAUSED. Press 'u' to resume.")
+            elif char == UNPAUSE_KEY and self.paused:
+                self.paused = False
+                logger.info("Bot RESUMED.")
+                print("\n>> Bot RESUMED.")
 
     def _check_cached_roi(self, screenshot: np.ndarray, name: str) -> Optional[MatchResult]:
         """Attempt a fast match using only the cached ROI."""
@@ -219,6 +234,9 @@ class BattleStateMachine:
 
     def step(self):
         """Main Observe-Think-Act iteration."""
+        if self.paused:
+            return
+
         try:
             screenshot = self.window_capture.capture()
             if screenshot is None: return
