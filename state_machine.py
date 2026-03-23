@@ -97,37 +97,42 @@ class BattleStateMachine:
         return match
 
     def determine_state(self, screenshot: np.ndarray) -> Tuple[BattleState, Optional[MatchResult]]:
-        """Identify state using a 2-phase approach: Fast ROI checks, then Full Scans."""
+        """Identify state by prioritizing overlays over backgrounds to prevent shadowing."""
         
-        ui_checks = [
+        overlays = [
             ("finish_ok", BattleState.POST_BATTLE),
             ("sp_ok", BattleState.POST_BATTLE),
-            ("fight_button", BattleState.PRE_BATTLE),
+            ("fight_button", BattleState.PRE_BATTLE)
+        ]
+        
+        backgrounds = [
             ("pass_active", BattleState.EXECUTE_MOVE),
             ("pass_inactive_gantas", BattleState.ANIMATING)
         ]
 
-        # Phase 1: Fast ROI Checks
-        # Only check templates that we have previously found and cached.
-        for name, state in ui_checks:
+        # 1. Check Overlays First (Foreground)
+        # We always check these because they signal major state changes.
+        for name, state in overlays:
             if name in self.ui_roi_cache:
                 match = self._check_cached_roi(screenshot, name)
-                if match:
-                    return state, match
-
-        # Phase 2: Full Scans
-        # If we reach here, either it's the start of the script (no cache),
-        # or the game state changed and the old UI element is gone.
-        if len(self.ui_roi_cache) == 5:
-            logger.info("ROI checks failed (State likely changed). Falling back to full scans.")
-
-        for name, state in ui_checks:
-            # logger.info(f"Running full scan and ROI caching for name: {name} and state: {state}")
-            match = self._full_scan_and_cache(screenshot, name)
+            else:
+                match = self._full_scan_and_cache(screenshot, name)
+            
             if match:
                 return state, match
 
-        # Phase 3: Unknown State
+        # 2. Check Backgrounds (only if no overlays found)
+        # Use ROI if cached for speed, otherwise full scan once to discover.
+        for name, state in backgrounds:
+            if name in self.ui_roi_cache:
+                match = self._check_cached_roi(screenshot, name)
+            else:
+                match = self._full_scan_and_cache(screenshot, name)
+                
+            if match:
+                return state, match
+
+        logger.info("Nothing found.")
         return BattleState.UNKNOWN, None
 
     def click_coords(self, coords: Tuple[int, int], name: str = "Coordinate"):
