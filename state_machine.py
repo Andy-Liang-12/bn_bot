@@ -276,7 +276,13 @@ class BattleStateMachine:
                 self.click_match(match)
                 time.sleep(SHORT_DELAY)
 
-            elif self.state == BattleState.EXECUTE_MOVE:
+            elif self.state == BattleState.EXECUTE_MOVE and match:
+                # prevent race conditions if lag, do nothing while waiting for a previous attack to register
+                # I have never seen this execute
+                if self.pending_action is not None:
+                    logger.info("pending action + execute_move pass")
+                    return
+
                 # 1. Discover troops if needed
                 if not self.troops_discovered:
                     self._discover_troops(screenshot)
@@ -285,7 +291,7 @@ class BattleStateMachine:
                 # 2. Identify Enemies
                 enemies = self.matcher.match_category(screenshot, "enemies")
                 if enemies:
-                    logger.debug(f"Detected Enemies: {', '.join([e.name for e in enemies])}")
+                    logger.info(f"Detected Enemies: {', '.join([e.name for e in enemies])}")
 
                 # 3. Find first ready troop that hasn't acted
                 enemy_prio = self.mission_config.get("enemy_priority", [])
@@ -302,8 +308,12 @@ class BattleStateMachine:
                                 self.shoot(troop, best_enemy, skill_id)
                                 return # Finish step to allow state to settle
                             else:
-                                logger.debug(f"[{troop['name']}] Skill {skill_id} on cooldown, skipping...")
+                                logger.info(f"[{troop['name']}] Skill {skill_id} on cooldown, skipping...")
                                 troop["has_acted"] = True # Skip for this turn
+                    self.click_match(match)
+                    time.sleep(SHORT_DELAY)
+                else:
+                    logger.info("No enemies found. Shouldn't get here")
 
             elif self.state == BattleState.POST_BATTLE and match:
                 if match.name in ["finish_ok", "sp_ok"]:
@@ -320,7 +330,7 @@ class BattleStateMachine:
     def _get_priority_match(self, matches: List[MatchResult], priority_list: List[str]) -> Optional[MatchResult]:
         for p_name in priority_list:
             for m in matches:
-                if m.name == p_name or m.name.startswith(p_name):
+                if m.name == p_name: #  or m.name.startswith(p_name)
                     return m
         return None
 

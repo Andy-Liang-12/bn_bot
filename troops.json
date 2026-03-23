@@ -19,8 +19,13 @@
     "heavy_tank": {
         "skills": {
             "1": {
-                "cooldown": 2
+                "cooldown": 3
             }
+        }
+    },
+    "wimp": {
+        "skills":{
+            "cooldown": 99
         }
     }
 }

@@ -2,6 +2,7 @@
     "mission_name": "gantas_iron",
     "troop_priority": [
         "heavy",
+        "wimp",
         "tk",
         "heavy_tank"
     ],
@@ -21,6 +22,9 @@
             1
         ],
         "heavy_tank:": [
+            1
+        ],
+        "wimp": [
             1
         ]
     }
