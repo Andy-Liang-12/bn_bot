@@ -25,7 +25,9 @@
     },
     "wimp": {
         "skills":{
-            "cooldown": 99
+            "1": {
+                "cooldown": 99
+            }
         }
     }
 }

@@ -49,6 +49,14 @@ class BattleStateMachine:
         self.mission_config = self._load_config(mission_config_path)
         self.troop_data = self._load_config("troops.json")
         
+        # Pre-load and validate priority lists
+        self.troop_prio = self.mission_config.get("troop_priority", [])
+        self.enemy_prio = self.mission_config.get("enemy_priority", [])
+        self.skill_prio = self.mission_config.get("skill_priorities", {})
+        
+        if not self.troop_prio or not self.enemy_prio:
+            logger.warning("WARNING: Troop or Enemy priority lists are empty!")
+        
         # State Tracking
         self.deployed_troops = []  # List of dicts: {"name", "pos", "cooldowns", "has_acted"}
         self.troops_discovered = False
@@ -293,15 +301,21 @@ class BattleStateMachine:
                 if enemies:
                     logger.info(f"Detected Enemies: {', '.join([e.name for e in enemies])}")
 
-                # 3. Find first ready troop that hasn't acted
-                enemy_prio = self.mission_config.get("enemy_priority", [])
-                best_enemy = self._get_priority_match(enemies, enemy_prio)
+                # 3. Find first ready troop that hasn't acted (using pre-loaded priority)
+                best_enemy = self._get_priority_match(enemies, self.enemy_prio)
 
                 if best_enemy:
-                    for troop in self.deployed_troops:
+                    # Sort troops by pre-loaded priority list
+                    def get_prio(troops):
+                        try: return self.troop_prio.index(troops["name"])
+                        except ValueError: return 999
+                        
+                    prioritized_troops = sorted(self.deployed_troops, key=get_prio)
+
+                    for troop in prioritized_troops:
                         if not troop["has_acted"]:
-                            # Check preferred skill (currently first in priority list)
-                            prio_skills = self.mission_config.get("skill_priorities", {}).get(troop["name"], ["1"])
+                            # Check preferred skill using pre-loaded priority
+                            prio_skills = self.skill_prio.get(troop["name"], ["1"])
                             skill_id = str(prio_skills[0])
                             
                             if troop["cooldowns"].get(skill_id, 0) == 0:
@@ -310,6 +324,9 @@ class BattleStateMachine:
                             else:
                                 logger.info(f"[{troop['name']}] Skill {skill_id} on cooldown, skipping...")
                                 troop["has_acted"] = True # Skip for this turn
+                    
+                    # If we reach here, all troops are exhausted
+                    logger.info("All troops exhausted. Passing turn.")
                     self.click_match(match)
                     time.sleep(SHORT_DELAY)
                 else:
