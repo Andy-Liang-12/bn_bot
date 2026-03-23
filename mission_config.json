@@ -2,13 +2,14 @@
     "mission_name": "gantas_iron",
     "troop_priority": [
         "heavy",
-        "tk"
+        "tk",
+        "heavy_tank"
     ],
     "enemy_priority": [
-        "dustwalker",
+        "firebreather",
+        "dustwalker1",
         "dustwalker2",
         "dustwalker3",
-        "firebreather",
         "mammoth"
     ],
     "skill_priorities": {
