@@ -25,6 +25,37 @@ EXIT_KEY = keyboard.Key.esc
 PAUSE_KEY = 'p'
 UNPAUSE_KEY = 'u'
 
+def setup_logging():
+    # 1. Load settings (Assumes load_dotenv() was called before this!)
+    log_level_str = os.getenv("LOG_LEVEL", "INFO").upper()
+    log_to_console = os.getenv("LOG_TO_CONSOLE", "True").lower() == "true"
+    log_to_file = os.getenv("LOG_TO_FILE", "False").lower() == "true"
+    log_file_path = os.getenv("LOG_FILE_PATH", "logs/state_machine.log")
+    
+    level = getattr(logging, log_level_str, logging.INFO)
+    handlers = []
+    
+    # 2. Add Console Handler
+    if log_to_console:
+        handlers.append(logging.StreamHandler(sys.stdout))
+        
+    # 3. Handle File Logging Logic
+    if log_to_file:
+        # Create directory if it doesn't exist
+        log_dir = os.path.dirname(log_file_path)
+        if log_dir and not os.path.exists(log_dir):
+            # No logger.info here yet because logging isn't configured!
+            os.makedirs(log_dir)
+            
+        handlers.append(logging.FileHandler(log_file_path))
+
+    # 4. Final configuration
+    logging.basicConfig(
+        level=level,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=handlers
+    )
+
 logger = logging.getLogger(__name__)
 
 class BattleState(Enum):
@@ -123,7 +154,7 @@ class BattleStateMachine:
             rw = min(mw + 2 * self.roi_padding, sw - rx)
             rh = min(mh + 2 * self.roi_padding, sh - ry)
             self.ui_roi_cache[name] = (rx, ry, rw, rh)
-            logger.info(f"Cached ROI for {name} at {self.ui_roi_cache[name]}")
+            logger.debug(f"Cached ROI for {name} at {self.ui_roi_cache[name]}")
         return match
 
     def determine_state(self, screenshot: np.ndarray) -> Tuple[BattleState, Optional[MatchResult]]:
@@ -162,7 +193,7 @@ class BattleStateMachine:
             if match:
                 return state, match
 
-        logger.info("Nothing found.")
+        logger.debug("Nothing found.")
         return BattleState.UNKNOWN, None
 
     def click_coords(self, coords: Tuple[int, int], name: str = "Coordinate"):
@@ -174,7 +205,7 @@ class BattleStateMachine:
         x, y = coords
         screen_x, screen_y = left + x, top + y
         
-        logger.info(f"Clicking {name} at ({screen_x}, {screen_y})")
+        logger.debug(f"Clicking {name} at ({screen_x}, {screen_y})")
         pyautogui.moveTo(screen_x, screen_y, duration=0.1)
         pyautogui.mouseDown()
         time.sleep(0.1) 
@@ -186,12 +217,12 @@ class BattleStateMachine:
 
     def _discover_troops(self, screenshot: np.ndarray):
         """Scan board once to identify friendly unit positions."""
-        logger.info("Discovery Phase: Scanning for friendly units...")
+        logger.debug("Discovery Phase: Scanning for friendly units...")
         matches = self.matcher.match_category(screenshot, "troops")
         
         self.deployed_troops = []
         for m in matches:
-            logger.info(f"Discovered [{m.name}] at {m.center}")
+            logger.debug(f"Discovered [{m.name}] at {m.center}")
             self.deployed_troops.append({
                 "name": m.name,
                 "pos": m.center,
@@ -202,7 +233,7 @@ class BattleStateMachine:
 
     def _reset_battle_state(self):
         """Reset temporary battle variables for a new encounter."""
-        logger.info("--- Resetting battle state for new encounter ---")
+        logger.debug("--- Resetting battle state for new encounter ---")
         self.pending_action = None
         self.was_animating = False
         for troop in self.deployed_troops:
@@ -212,17 +243,17 @@ class BattleStateMachine:
 
     def _on_turn_start(self):
         """Reset troop 'has_acted' flags and decrement cooldowns."""
-        logger.info("--- New Player Turn Started ---")
+        logger.debug("--- New Player Turn Started ---")
         for troop in self.deployed_troops:
             troop["has_acted"] = False
             for skill_id in list(troop["cooldowns"].keys()):
                 if troop["cooldowns"][skill_id] > 0:
                     troop["cooldowns"][skill_id] -= 1
-                    logger.info(f"  [{troop['name']}] Skill {skill_id} CD reduced to {troop['cooldowns'][skill_id]}")
+                    logger.debug(f"  [{troop['name']}] Skill {skill_id} CD reduced to {troop['cooldowns'][skill_id]}")
 
     def shoot(self, troop_dict: Dict, enemy: MatchResult, skill_id: str):
         """Execute attack and prepare for cooldown confirmation."""
-        logger.info(f"ACT: {troop_dict['name']} (Skill {skill_id}) -> {enemy.name}")
+        logger.debug(f"ACT: {troop_dict['name']} (Skill {skill_id}) -> {enemy.name}")
         
         # 1. Execute clicks
         self.click_coords(troop_dict["pos"], troop_dict["name"])
@@ -243,7 +274,7 @@ class BattleStateMachine:
                 "skill_id": skill_id,
                 "base_cd": base_cd
             }
-            logger.info(f"  Action pending confirmation for {troop_dict['name']}")
+            logger.debug(f"  Action pending confirmation for {troop_dict['name']}")
             
         time.sleep(LONG_DELAY)
 
@@ -275,7 +306,7 @@ class BattleStateMachine:
                     base_cd = self.pending_action["base_cd"]
                     
                     troop["cooldowns"][skill_id] = base_cd
-                    logger.info(f"  CONFIRMED: {troop['name']} Skill {skill_id} CD set to {base_cd}")
+                    logger.debug(f"  CONFIRMED: {troop['name']} Skill {skill_id} CD set to {base_cd}")
                     self.pending_action = None
 
                 # Turn Start Detection: Transitioning from Animating (Enemy) back to Move (Player)
@@ -293,10 +324,10 @@ class BattleStateMachine:
 
             elif self.state == BattleState.EXECUTE_MOVE and match:
                 # prevent race conditions if lag, do nothing while waiting for a previous attack to register
-                # I have never seen this execute
-                if self.pending_action is not None:
-                    logger.info("pending action + execute_move pass")
-                    return
+                # commenting this out, hangs the program sometimes
+                # if self.pending_action is not None:
+                #     logger.debug("pending action + execute_move pass")
+                #     return
 
                 # 1. Discover troops if needed
                 if not self.troops_discovered:
@@ -306,7 +337,7 @@ class BattleStateMachine:
                 # 2. Identify Enemies
                 enemies = self.matcher.match_category(screenshot, "enemies")
                 if enemies:
-                    logger.info(f"Detected Enemies: {', '.join([e.name for e in enemies])}")
+                    logger.debug(f"Detected Enemies: {', '.join([e.name for e in enemies])}")
 
                 # 3. Find first ready troop that hasn't acted (using pre-loaded priority)
                 best_enemy = self._get_priority_match(enemies, self.enemy_prio)
@@ -329,15 +360,15 @@ class BattleStateMachine:
                                 self.shoot(troop, best_enemy, skill_id)
                                 return # Finish step to allow state to settle
                             else:
-                                logger.info(f"[{troop['name']}] Skill {skill_id} on cooldown, skipping...")
+                                logger.debug(f"[{troop['name']}] Skill {skill_id} on cooldown, skipping...")
                                 troop["has_acted"] = True # Skip for this turn
                     
                     # If we reach here, all troops are exhausted
-                    logger.info("All troops exhausted. Passing turn.")
+                    logger.debug("All troops exhausted. Passing turn.")
                     self.click_match(match)
                     time.sleep(SHORT_DELAY)
                 else:
-                    logger.info("No enemies found. Shouldn't get here")
+                    logger.debug("No enemies found. Shouldn't get here")
 
             elif self.state == BattleState.POST_BATTLE and match:
                 if match.name in ["finish_ok", "sp_ok"]:
@@ -346,6 +377,13 @@ class BattleStateMachine:
                     time.sleep(0.1)
                     self.click_match(match)
                     time.sleep(SHORT_DELAY)
+
+            else:
+                if self.state == BattleState.ANIMATING:
+                    logger.debug("Currently animating... waiting for state change.")
+                else:
+                    logger.info("No matching template found.")
+                time.sleep(SHORT_DELAY)
 
         except Exception as e:
             logger.error(f"Error in state machine step: {e}")
@@ -373,9 +411,6 @@ class BattleStateMachine:
             listener.stop()
 
 if __name__ == "__main__":
-    from config import LOGS_DIR
-    LOGS_DIR.mkdir(parents=True, exist_ok=True)
     load_dotenv()
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s',
-                        handlers=[logging.FileHandler(LOGS_DIR / 'state_machine.log'), logging.StreamHandler(sys.stdout)])
+    setup_logging()
     BattleStateMachine().run()

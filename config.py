@@ -34,6 +34,7 @@ TEMPLATES = {
     "opp_tile": {"category": "battle", "threshold": 0.85},
     "pass_active": {"category": "battle", "threshold": 0.92},
     "pass_inactive_gantas": {"category": "battle", "threshold": 0.92},
+    "pass_inactive_gantas2": {"category": "battle", "threshold": 0.92},
 
     # Troops
     "heavy": {"category": "troops", "threshold": 0.85},
