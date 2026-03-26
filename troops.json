@@ -29,5 +29,12 @@
                 "cooldown": 99
             }
         }
+    },
+    "field_agent": {
+        "skills": {
+            "2": {
+                "cooldown": 5
+            }
+        }
     }
 }

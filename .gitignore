@@ -3,3 +3,4 @@ logs/*
 !logs/.gitkeep
 screenshots
 __pycache__
+.env

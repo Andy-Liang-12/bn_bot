@@ -40,12 +40,13 @@ TEMPLATES = {
     "tk": {"category": "troops", "threshold": 0.85},
     "heavy_tank": {"category": "troops", "threshold": 0.85},
     "wimp": {"category": "troops", "threshold": 0.95},
+    # "field_agent": {"category": "troops", "threshold": 0.85},
 
     # Enemies
     "mammoth": {"category": "enemies", "threshold": 0.85},
     "wild_boar": {"category": "enemies", "threshold": 0.85},
     "dustwalker1": {"category": "enemies", "threshold": 0.85},
-    "dustwalker2": {"category": "enemies", "threshold": 0.85},
+    # "dustwalker2": {"category": "enemies", "threshold": 0.85},
     "firebreather": {"category": "enemies", "threshold": 0.85},
 }
 
