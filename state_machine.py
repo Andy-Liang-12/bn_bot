@@ -75,8 +75,10 @@ class BattleStateMachine:
         self.matcher = TemplateMatcher()
         self.state = BattleState.UNKNOWN
         self.last_state_change = time.time()
+        self.start_time = time.time()
         self.running = False
         self.paused = False
+        self.run_count = 0
         
         # Determine mission config path from environment or default
         if mission_config_path is None:
@@ -86,6 +88,7 @@ class BattleStateMachine:
         # Configuration
         self.mission_config = self._load_config(mission_config_path)
         self.troop_data = self._load_config("troops.json")
+        self.rewards_config = self.mission_config.get("rewards", {})
         
         # Pre-load and validate priority lists
         self.troop_prio = self.mission_config.get("troop_priority", [])
@@ -376,6 +379,11 @@ class BattleStateMachine:
                     self.click_match(match)
                     time.sleep(0.1)
                     self.click_match(match)
+                    
+                    # Increment run count
+                    self.run_count += 1
+                    logger.info(f"Battle #{self.run_count} completed.")
+                    
                     time.sleep(SHORT_DELAY)
 
             else:
@@ -388,6 +396,30 @@ class BattleStateMachine:
         except Exception as e:
             logger.error(f"Error in state machine step: {e}")
             time.sleep(1)
+
+    def _print_summary(self):
+        """Print a summary of the session gains and duration."""
+        duration = time.time() - self.start_time
+        hours = int(duration // 3600)
+        minutes = int((duration % 3600) // 60)
+        seconds = int(duration % 60)
+        
+        print("\n" + "=" * 60)
+        print("BATTLE SUMMARY")
+        print("=" * 60)
+        print(f"Total Runs: {self.run_count}")
+        print(f"Elapsed Time: {hours:02d}:{minutes:02d}:{seconds:02d}")
+        print("-" * 60)
+        
+        if self.rewards_config:
+            print("Total Rewards Gained:")
+            for resource, amount in self.rewards_config.items():
+                total = amount * self.run_count
+                print(f"  • {resource.capitalize()}: {total:,}")
+        else:
+            print("No rewards configured for this mission.")
+            
+        print("=" * 60 + "\n")
 
     def _get_priority_match(self, matches: List[MatchResult], priority_list: List[str]) -> Optional[MatchResult]:
         for p_name in priority_list:
@@ -409,6 +441,7 @@ class BattleStateMachine:
         finally:
             self.running = False
             listener.stop()
+            self._print_summary()
 
 if __name__ == "__main__":
     load_dotenv()
