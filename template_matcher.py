@@ -190,14 +190,13 @@ class TemplateMatcher:
     def match_category(self, screenshot: np.ndarray, category: str) -> List[MatchResult]:
         """Find all matches for templates in a specific category."""
         results = []
-        gray_screenshot = self._get_grayscale(screenshot)
         
         for name, info in TEMPLATES.items():
             if info["category"] == category:
                 if category in ["enemies", "troops"]:
-                    results.extend(self.match_multiple(gray_screenshot, name))
+                    results.extend(self.match_multiple(screenshot, name))
                 else:
-                    match = self.match_template(gray_screenshot, name)
+                    match = self.match_template(screenshot, name)
                     if match:
                         results.append(match)
         return results
@@ -205,10 +204,9 @@ class TemplateMatcher:
     def match_all_templates(self, screenshot: np.ndarray) -> List[MatchResult]:
         """Match all registered templates against the screenshot."""
         matches = []
-        gray_screenshot = self._get_grayscale(screenshot)
         
         for name in TEMPLATES.keys():
-            match = self.match_template(gray_screenshot, name)
+            match = self.match_template(screenshot, name)
             if match:
                 matches.append(match)
         
@@ -219,14 +217,13 @@ class TemplateMatcher:
                        template_names: List[str]) -> Optional[MatchResult]:
         """Find the best match among specified templates."""
         best_match = None
-        gray_screenshot = self._get_grayscale(screenshot)
         
         for name in template_names:
             if name not in TEMPLATES:
                 logger.warning(f"Unknown template: {name}")
                 continue
             
-            match = self.match_template(gray_screenshot, name)
+            match = self.match_template(screenshot, name)
             if match and (best_match is None or match.confidence > best_match.confidence):
                 best_match = match
         
