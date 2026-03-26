@@ -4,6 +4,8 @@ import logging
 import time
 import json
 import sys
+import os
+from dotenv import load_dotenv
 from enum import Enum, auto
 from typing import Optional, Tuple, Dict, Any, List
 
@@ -37,7 +39,7 @@ class BattleState(Enum):
 class BattleStateMachine:
     """Orchestrates the battle loop using efficient visual feedback."""
     
-    def __init__(self, mission_config_path: str = "mission_config.json"):
+    def __init__(self, mission_config_path: Optional[str] = None):
         self.window_capture = WindowCapture()
         self.matcher = TemplateMatcher()
         self.state = BattleState.UNKNOWN
@@ -45,6 +47,11 @@ class BattleStateMachine:
         self.running = False
         self.paused = False
         
+        # Determine mission config path from environment or default
+        if mission_config_path is None:
+            mission_name = os.getenv("MISSION_CONFIG", "gantas_iron")
+            mission_config_path = f"battle_configs/{mission_name}.json"
+            
         # Configuration
         self.mission_config = self._load_config(mission_config_path)
         self.troop_data = self._load_config("troops.json")
@@ -368,6 +375,7 @@ class BattleStateMachine:
 if __name__ == "__main__":
     from config import LOGS_DIR
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
+    load_dotenv()
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s',
                         handlers=[logging.FileHandler(LOGS_DIR / 'state_machine.log'), logging.StreamHandler(sys.stdout)])
     BattleStateMachine().run()

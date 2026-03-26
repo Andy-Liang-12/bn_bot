@@ -1,16 +1,16 @@
 {
     "mission_name": "gantas_iron",
+    "pass_button": "gantas_pass_inactive",
     "troop_priority": [
         "heavy",
-        "wimp",
         "tk",
-        "heavy_tank"
+        "heavy_tank",
+        "wimp",
+        "field_agent"
     ],
     "enemy_priority": [
         "firebreather",
         "dustwalker1",
-        "dustwalker2",
-        "dustwalker3",
         "mammoth"
     ],
     "skill_priorities": {

@@ -65,4 +65,4 @@ Instead of hardcoding the logic for every battle, we use a mission\_config.json.
 
 ---
 
-Would you like me to start by drafting the **Python class structure for the Reactive State Machine** so we can begin plugging in your V1 vision code?
+Avoid changing file and variable names unless the user has explicitly told you to do so.
