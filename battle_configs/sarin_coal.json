@@ -1,0 +1,28 @@
+{
+    "mission_name": "sarin_coal",
+    "pass_button": "sarin_pass_inactive",
+    "troop_priority": [
+        "heavy",
+        "soldier"
+    ],
+    "enemy_priority": [
+        "firebreather",
+        "dustwalker1",
+        "mammoth"
+    ],
+    "skill_priorities": {
+        "heavy": [
+            1,
+            2
+        ],
+        "soldier": [
+            1
+        ]
+    },
+    "rewards": {
+        "gold": 785,
+        "stone": 8,
+        "wood": 5,
+        "coal": 20
+    }
+}

@@ -25,21 +25,22 @@ STUCK_DETECTION_THRESHOLD = 20.0
 
 TEMPLATES = {
     # Battle setup and flow
-    "fight_button": {"category": "battle", "threshold": 0.85},
-    "finish_ok": {"category": "battle", "threshold": 0.85},
+    "fight_button": {"category": "battle", "threshold": 0.92},
+    "finish_ok": {"category": "battle", "threshold": 0.92},
     # no reason to search for victory, assume defeat is impossible
     # "victory": {"category": "battle", "threshold": 0.85},
     # "defeat": {"category": "battle", "threshold": 0.85},
-    "sp_ok": {"category": "battle", "threshold": 0.85},
-    "opp_tile": {"category": "battle", "threshold": 0.85},
+    "sp_ok": {"category": "battle", "threshold": 0.92},
+    "opp_tile": {"category": "battle", "threshold": 0.92},
     "pass_active": {"category": "battle", "threshold": 0.92},
     "pass_inactive_gantas": {"category": "battle", "threshold": 0.92},
-    "pass_inactive_gantas2": {"category": "battle", "threshold": 0.92},
+    "pass_inactive_sarin": {"category": "battle", "threshold": 0.92},
 
     # Troops
-    "heavy": {"category": "troops", "threshold": 0.85},
-    "tk": {"category": "troops", "threshold": 0.85},
-    "heavy_tank": {"category": "troops", "threshold": 0.85},
+    "heavy": {"category": "troops", "threshold": 0.90},
+    "soldier": {"category": "troops", "threshold": 0.88},
+    "tk": {"category": "troops", "threshold": 0.90},
+    "heavy_tank": {"category": "troops", "threshold": 0.90},
     "wimp": {"category": "troops", "threshold": 0.95},
     # "field_agent": {"category": "troops", "threshold": 0.85},
 
@@ -47,8 +48,9 @@ TEMPLATES = {
     "mammoth": {"category": "enemies", "threshold": 0.85},
     "wild_boar": {"category": "enemies", "threshold": 0.85},
     "dustwalker1": {"category": "enemies", "threshold": 0.85},
-    # "dustwalker2": {"category": "enemies", "threshold": 0.85},
     "firebreather": {"category": "enemies", "threshold": 0.85},
+    "raider_warrior": {"category": "enemies", "threshold": 0.85},
+    "boom_boom": {"category": "enemies", "threshold": 0.85},
 }
 
 
