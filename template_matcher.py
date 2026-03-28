@@ -132,59 +132,68 @@ class TemplateMatcher:
                       name: str, 
                       threshold: Optional[float] = None,
                       roi: Optional[Tuple[int, int, int, int]] = None) -> List[MatchResult]:
-        """Find all instances of a template using NMS to avoid overlapping matches."""
         template = self._load_template(name)
-        if template is None:
-            return []
-            
-        if threshold is None:
-            threshold = get_template_threshold(name)
-            
+        if template is None: return []
+        
+        # 1. THE BOUNDS CHECK (Clamping the ROI)
         target = screenshot
         offset_x, offset_y = 0, 0
-        roi_flag = False
-
         if roi:
             rx, ry, rw, rh = roi
             sh, sw = screenshot.shape[:2]
-            rx = max(0, min(rx, sw - 1))
-            ry = max(0, min(ry, sh - 1))
-            rw = max(1, min(rw, sw - rx))
-            rh = max(1, min(rh, sh - ry))
-            target = screenshot[ry:ry+rh, rx:rx+rw]
-            offset_x, offset_y = rx, ry
-            roi_flag = True
             
+            # Clamp starting points
+            x1 = max(0, min(rx, sw - 1))
+            y1 = max(0, min(ry, sh - 1))
+            # Clamp ending points
+            x2 = max(0, min(rx + rw, sw))
+            y2 = max(0, min(ry + rh, sh))
+            
+            target = screenshot[y1:y2, x1:x2]
+            offset_x, offset_y = x1, y1
+
+        # 2. TEMPLATE SIZE CHECK (Scrutiny: Prevents crash if ROI < Template)
+        th, tw = template.shape[:2]
+        if target.shape[0] < th or target.shape[1] < tw:
+            return []
+
         try:
+            # 3. SELECTIVE GRAYSCALE (Local conversion only)
             gray_target = self._get_grayscale(target)
-            
             res = cv2.matchTemplate(gray_target, template, cv2.TM_CCOEFF_NORMED)
-            loc = np.where(res >= threshold)
+            
+            # 4. NMS PREP
+            actual_threshold = threshold or get_template_threshold(name)
+            loc = np.where(res >= actual_threshold)
+            
+            rects = []
+            for pt in zip(*loc[::-1]):
+                # groupRectangles requires each rect twice to preserve singletons
+                rects.append([int(pt[0]), int(pt[1]), int(tw), int(th)])
+                rects.append([int(pt[0]), int(pt[1]), int(tw), int(th)])
+
+            if not rects: return []
+
+            # 5. NATIVE NMS
+            # groupThreshold=1 means "need 1 overlap" (satisfied by our double-append)
+            # eps=0.2 means 20% distance tolerance for grouping
+            rects, _ = cv2.groupRectangles(rects, groupThreshold=1, eps=0.2)
             
             matches = []
-            h, w = template.shape[:2]
-            
-            pts = []
-            for pt in zip(*loc[::-1]):
-                pts.append((pt[0], pt[1], float(res[pt[1], pt[0]])))
-            
-            pts.sort(key=lambda x: x[2], reverse=True)
-            
-            while pts:
-                best = pts.pop(0)
+            for (x, y, w, h) in rects:
+                # Find best confidence in the grouped area
+                conf = float(np.max(res[y:y+h, x:x+w]))
                 matches.append(MatchResult(
                     name=name,
-                    confidence=best[2],
-                    location=(best[0] + offset_x, best[1] + offset_y),
+                    confidence=conf,
+                    location=(x + offset_x, y + offset_y),
                     size=(w, h),
-                    roi_used=roi_flag
+                    roi_used=bool(roi)
                 ))
-                pts = [p for p in pts if abs(p[0] - best[0]) > w/2 or abs(p[1] - best[1]) > h/2]
-                
             return matches
-            
+
         except Exception as e:
-            logger.error(f"Error in match_multiple for {name}: {e}")
+            logger.error(f"Critical error in match_multiple for {name}: {e}")
             return []
 
     def match_category(self, screenshot: np.ndarray, category: str) -> List[MatchResult]:
@@ -212,6 +221,7 @@ class TemplateMatcher:
         
         return matches
     
+    # Currently unused
     def find_best_match(self, 
                        screenshot: np.ndarray, 
                        template_names: List[str]) -> Optional[MatchResult]:
