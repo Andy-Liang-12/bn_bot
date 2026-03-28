@@ -158,7 +158,7 @@ class TemplateMatcher:
             return []
 
         try:
-            # 3. SELECTIVE GRAYSCALE (Local conversion only)
+            # 3. GRAYSCALE
             gray_target = self._get_grayscale(target)
             res = cv2.matchTemplate(gray_target, template, cv2.TM_CCOEFF_NORMED)
             
@@ -175,7 +175,7 @@ class TemplateMatcher:
             if not rects: return []
 
             # 5. NATIVE NMS
-            # groupThreshold=1 means "need 1 overlap" (satisfied by our double-append)
+            # groupThreshold=1 means "need 1 overlap" (satisfied by double-append)
             # eps=0.2 means 20% distance tolerance for grouping
             rects, _ = cv2.groupRectangles(rects, groupThreshold=1, eps=0.2)
             
@@ -193,7 +193,7 @@ class TemplateMatcher:
             return matches
 
         except Exception as e:
-            logger.error(f"Critical error in match_multiple for {name}: {e}")
+            logger.error(f"Error in match_multiple for {name}: {e}")
             return []
 
     def match_category(self, screenshot: np.ndarray, category: str) -> List[MatchResult]:
@@ -210,6 +210,36 @@ class TemplateMatcher:
                         results.append(match)
         return results
     
+    def match_whitelist(self, 
+                        screenshot: np.ndarray, 
+                        names: List[str], 
+                        multiple: bool = False) -> List[MatchResult]:
+        """
+        Only matches templates provided in the names list.
+        Uses the Master Registry (TEMPLATES) for thresholds and paths.
+        More efficient than match_category if we only care about a few specific templates
+        """
+        results = []
+        # Optimization: match_multiple and match_template already convert to grayscale, but we don't want to convert multiple times 
+        gray_screenshot = self._get_grayscale(screenshot)
+
+        for name in names:
+            if name not in TEMPLATES:
+                logger.warning(f"Template '{name}' in mission config but not in registry!")
+                continue
+
+            if multiple:
+                # For enemies/troops where there might be more than one
+                matches = self.match_multiple(gray_screenshot, name)
+                results.extend(matches)
+            else:
+                # For single UI elements
+                match = self.match_template(gray_screenshot, name)
+                if match:
+                    results.append(match)
+        
+        return results
+
     def match_all_templates(self, screenshot: np.ndarray) -> List[MatchResult]:
         """Match all registered templates against the screenshot."""
         matches = []

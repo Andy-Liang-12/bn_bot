@@ -1,6 +1,6 @@
 {
     "mission_name": "gantas_iron",
-    "pass_button": "gantas_pass_inactive",
+    "pass_button": "pass_inactive_gantas",
     "troop_priority": [
         "heavy",
         "tk",

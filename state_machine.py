@@ -70,7 +70,7 @@ class BattleState(Enum):
 class BattleStateMachine:
     """Orchestrates the battle loop using efficient visual feedback."""
     
-    def __init__(self, mission_config_path: Optional[str] = None):
+    def __init__(self):
         self.window_capture = WindowCapture()
         self.matcher = TemplateMatcher()
         self.state = BattleState.UNKNOWN
@@ -81,22 +81,34 @@ class BattleStateMachine:
         self.run_count = 0
         
         # Determine mission config path from environment or default
-        if mission_config_path is None:
-            mission_name = os.getenv("MISSION_CONFIG", "gantas_iron")
-            mission_config_path = f"battle_configs/{mission_name}.json"
-            
+        mission_config = os.getenv("MISSION_CONFIG")
+        if mission_config is None:
+            logger.warning("MISSION_CONFIG not found in .env file.")
+            sys.exit(1)
+        
+        mission_config_path = os.path.join("battle_configs", f"{mission_config}.json")
         # Configuration
         self.mission_config = self._load_config(mission_config_path)
         self.troop_data = self._load_config("troops.json")
         self.rewards_config = self.mission_config.get("rewards", {})
+        self.pass_button_type = self.mission_config.get("pass_button")
+
+        logger.debug(f"Mission Config Loaded: {self.mission_config.get('mission_name', 'Missing')}")
+        logger.debug(f"Troop Data Loaded: {len(self.troop_data)} units")
+        logger.debug(f"Pass Button Type: {self.pass_button_type}")
+
+        if not self.mission_config or not self.troop_data or not self.pass_button_type:
+            logger.warning("Config values are missing. Check config name and contents.")
+            sys.exit(1)
         
         # Pre-load and validate priority lists
         self.troop_prio = self.mission_config.get("troop_priority", [])
         self.enemy_prio = self.mission_config.get("enemy_priority", [])
         self.skill_prio = self.mission_config.get("skill_priorities", {})
         
-        if not self.troop_prio or not self.enemy_prio:
-            logger.warning("WARNING: Troop or Enemy priority lists are empty!")
+        if not self.troop_prio or not self.enemy_prio or not self.skill_prio:
+            logger.warning("WARNING: priority lists are empty!")
+            sys.exit(1)
         
         # State Tracking
         self.deployed_troops = []  # List of dicts: {"name", "pos", "cooldowns", "has_acted"}
@@ -171,11 +183,10 @@ class BattleStateMachine:
         
         backgrounds = [
             ("pass_active", BattleState.EXECUTE_MOVE),
-            ("pass_inactive_gantas", BattleState.ANIMATING)
+            (self.pass_button_type, BattleState.ANIMATING)
         ]
 
-        # 1. Check Overlays First (Foreground)
-        # We always check these because they signal major state changes.
+        # 1. Check Overlays First
         for name, state in overlays:
             if name in self.ui_roi_cache:
                 match = self._check_cached_roi(screenshot, name)
@@ -185,8 +196,7 @@ class BattleStateMachine:
             if match:
                 return state, match
 
-        # 2. Check Backgrounds (only if no overlays found)
-        # Use ROI if cached for speed, otherwise full scan once to discover.
+        # 2. Check Backgrounds
         for name, state in backgrounds:
             if name in self.ui_roi_cache:
                 match = self._check_cached_roi(screenshot, name)
@@ -220,18 +230,22 @@ class BattleStateMachine:
 
     def _discover_troops(self, screenshot: np.ndarray):
         """Scan board once to identify friendly unit positions."""
-        logger.debug("Discovery Phase: Scanning for friendly units...")
-        matches = self.matcher.match_category(screenshot, "troops")
+        logger.info(f"Discovery Phase: Scanning for {self.troop_prio}...")
+        matches = self.matcher.match_whitelist(screenshot, self.troop_prio, multiple=True)
         
         self.deployed_troops = []
         for m in matches:
-            logger.debug(f"Discovered [{m.name}] at {m.center}")
+            logger.debug(f"Discovered [{m.name}] at {m.center} with confidence {m.confidence:.2f}")
             self.deployed_troops.append({
                 "name": m.name,
                 "pos": m.center,
                 "cooldowns": {"1": 0, "2": 0, "3": 0},
                 "has_acted": False
             })
+        if not self.deployed_troops:
+            logger.info("Discovery failed: No troops from the whitelist were found on screen.")
+        else:
+            logger.info(f"Discovered {len(self.deployed_troops)} troops.")
         self.troops_discovered = True
 
     def _reset_battle_state(self):
@@ -338,7 +352,13 @@ class BattleStateMachine:
                     self._on_turn_start() # Initialize flags for Turn 1
 
                 # 2. Identify Enemies
-                enemies = self.matcher.match_category(screenshot, "enemies")
+                # enemies = self.matcher.match_category(screenshot, "enemies")
+                enemies = self.matcher.match_whitelist(
+                    screenshot, 
+                    self.enemy_prio, 
+                    multiple=True
+                )
+                
                 if enemies:
                     logger.debug(f"Detected Enemies: {', '.join([e.name for e in enemies])}")
 
@@ -444,6 +464,6 @@ class BattleStateMachine:
             self._print_summary()
 
 if __name__ == "__main__":
-    load_dotenv()
+    load_dotenv(override=True)
     setup_logging()
     BattleStateMachine().run()
