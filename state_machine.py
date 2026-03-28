@@ -70,7 +70,7 @@ class BattleState(Enum):
 class BattleStateMachine:
     """Orchestrates the battle loop using efficient visual feedback."""
     
-    def __init__(self, mission_config_path: Optional[str] = None):
+    def __init__(self):
         self.window_capture = WindowCapture()
         self.matcher = TemplateMatcher()
         self.state = BattleState.UNKNOWN
@@ -81,10 +81,12 @@ class BattleStateMachine:
         self.run_count = 0
         
         # Determine mission config path from environment or default
-        if mission_config_path is None:
-            logger.warning("No mission config path provided.")
+        mission_config = os.getenv("MISSION_CONFIG")
+        if mission_config is None:
+            logger.warning("MISSION_CONFIG not found in .env file.")
             sys.exit(1)
-            
+        
+        mission_config_path = os.path.join("battle_configs", f"{mission_config}.json")
         # Configuration
         self.mission_config = self._load_config(mission_config_path)
         self.troop_data = self._load_config("troops.json")
@@ -233,7 +235,7 @@ class BattleStateMachine:
         
         self.deployed_troops = []
         for m in matches:
-            logger.debug(f"Discovered [{m.name}] at {m.center}")
+            logger.debug(f"Discovered [{m.name}] at {m.center} with confidence {m.confidence:.2f}")
             self.deployed_troops.append({
                 "name": m.name,
                 "pos": m.center,
@@ -462,6 +464,6 @@ class BattleStateMachine:
             self._print_summary()
 
 if __name__ == "__main__":
-    load_dotenv()
+    load_dotenv(override=True)
     setup_logging()
     BattleStateMachine().run()

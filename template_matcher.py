@@ -158,7 +158,7 @@ class TemplateMatcher:
             return []
 
         try:
-            # 3. SELECTIVE GRAYSCALE (Local conversion only)
+            # 3. GRAYSCALE
             gray_target = self._get_grayscale(target)
             res = cv2.matchTemplate(gray_target, template, cv2.TM_CCOEFF_NORMED)
             
@@ -175,7 +175,7 @@ class TemplateMatcher:
             if not rects: return []
 
             # 5. NATIVE NMS
-            # groupThreshold=1 means "need 1 overlap" (satisfied by our double-append)
+            # groupThreshold=1 means "need 1 overlap" (satisfied by double-append)
             # eps=0.2 means 20% distance tolerance for grouping
             rects, _ = cv2.groupRectangles(rects, groupThreshold=1, eps=0.2)
             
@@ -193,7 +193,7 @@ class TemplateMatcher:
             return matches
 
         except Exception as e:
-            logger.error(f"Critical error in match_multiple for {name}: {e}")
+            logger.error(f"Error in match_multiple for {name}: {e}")
             return []
 
     def match_category(self, screenshot: np.ndarray, category: str) -> List[MatchResult]:

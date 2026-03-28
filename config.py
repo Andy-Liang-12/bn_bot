@@ -39,7 +39,7 @@ TEMPLATES = {
     # Troops
     "heavy": {"category": "troops", "threshold": 0.90},
     "soldier": {"category": "troops", "threshold": 0.88},
-    "tk": {"category": "troops", "threshold": 0.90},
+    "tk": {"category": "troops", "threshold": 0.88},
     "heavy_tank": {"category": "troops", "threshold": 0.90},
     "wimp": {"category": "troops", "threshold": 0.95},
     # "field_agent": {"category": "troops", "threshold": 0.85},
