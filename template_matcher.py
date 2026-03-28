@@ -210,6 +210,36 @@ class TemplateMatcher:
                         results.append(match)
         return results
     
+    def match_whitelist(self, 
+                        screenshot: np.ndarray, 
+                        names: List[str], 
+                        multiple: bool = False) -> List[MatchResult]:
+        """
+        Only matches templates provided in the names list.
+        Uses the Master Registry (TEMPLATES) for thresholds and paths.
+        More efficient than match_category if we only care about a few specific templates
+        """
+        results = []
+        # Optimization: match_multiple and match_template already convert to grayscale, but we don't want to convert multiple times 
+        gray_screenshot = self._get_grayscale(screenshot)
+
+        for name in names:
+            if name not in TEMPLATES:
+                logger.warning(f"Template '{name}' in mission config but not in registry!")
+                continue
+
+            if multiple:
+                # For enemies/troops where there might be more than one
+                matches = self.match_multiple(gray_screenshot, name)
+                results.extend(matches)
+            else:
+                # For single UI elements
+                match = self.match_template(gray_screenshot, name)
+                if match:
+                    results.append(match)
+        
+        return results
+
     def match_all_templates(self, screenshot: np.ndarray) -> List[MatchResult]:
         """Match all registered templates against the screenshot."""
         matches = []
