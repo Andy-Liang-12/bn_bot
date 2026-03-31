@@ -19,6 +19,7 @@ from template_matcher import TemplateMatcher
 TEST_KEY = 't'
 MULTIPLE_TEST_KEY = 'm'
 EXIT_KEY = 'esc'
+COORD_KEY = 'c'
 
 logging.basicConfig(
     level=logging.INFO,
@@ -51,8 +52,13 @@ class MatchTestApp:
                 if key.char == TEST_KEY:
                     self._run_matching_test()
                     return
-                if key.char == MULTIPLE_TEST_KEY:
+                elif key.char == MULTIPLE_TEST_KEY:
                     self._run_multiple_matching_test()
+                    return
+                elif key.char == COORD_KEY:
+                    import pyautogui
+                    x, y = pyautogui.position()
+                    logger.info(f"\n[CURSOR] Screen Coordinates: ({x}, {y})")
                     return
             
             if key == keyboard.Key.esc:
@@ -196,6 +202,7 @@ class MatchTestApp:
         print("\nControls:")
         print(f"  [{TEST_KEY}] - Run matching test")
         print(f"  [{MULTIPLE_TEST_KEY}] - Run multiple match test")
+        print(f"  [{COORD_KEY}] - Get coordinate of cursor")
         print(f"  [{EXIT_KEY.upper()}] - Exit")
         print("\nWaiting for input...\n")
         

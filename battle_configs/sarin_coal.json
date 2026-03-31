@@ -1,14 +1,34 @@
 {
     "mission_name": "sarin_coal",
-    "pass_button": "sarin_pass_inactive",
+    "pass_button": "pass_inactive_sarin",
+    "initial_moves": [
+        {
+            "troop": "soldier",
+            "skill": "1",
+            "target": [
+                1394,
+                331
+            ],
+            "type": "coordinate"
+        },
+        {
+            "troop": "soldier",
+            "skill": "1",
+            "target": [
+                1394,
+                331
+            ],
+            "type": "coordinate"
+        }
+    ],
     "troop_priority": [
         "heavy",
+        "tk",
         "soldier"
     ],
     "enemy_priority": [
-        "firebreather",
-        "dustwalker1",
-        "mammoth"
+        "raider_warrior",
+        "boom_boom"
     ],
     "skill_priorities": {
         "heavy": [

@@ -1,0 +1,42 @@
+{
+    "mission_name": "farm_wood",
+    "pass_button": "pass_inactive_gantas",
+    "initial_moves": [
+        {
+            "troop": "soldier",
+            "skill": "1",
+            "target": [1394, 331],
+            "type": "coordinate"
+        }
+    ],
+    "troop_priority": [
+        "heavy",
+        "tk",
+        "soldier",
+        "heavy_tank",
+        "wimp"
+    ],
+    "enemy_priority": [
+        "raider_warrior",
+        "raider_canoneer"
+    ],
+    "skill_priorities": {
+        "heavy": [
+            1,
+            2
+        ],
+        "tk": [
+            1
+        ],
+        "heavy_tank": [
+            1
+        ],
+        "wimp": [
+            1
+        ]
+    },
+    "rewards": {
+        "gold": 330,
+        "wood": 120
+    }
+}

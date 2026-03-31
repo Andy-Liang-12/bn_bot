@@ -16,7 +16,7 @@ MAX_MATCH_THRESHOLD = 0.95
 SCREENSHOT_FORMAT = "png"
 TIMESTAMP_FORMAT = "%Y%m%d_%H%M%S"
 
-CLICK_DELAY = 0.1
+CLICK_DELAY = 0.07 # Time (s) to hold mouse down for a click
 SHORT_DELAY = 0.2
 LONG_DELAY = 0.4
 STATE_CHECK_INTERVAL = 0.2
@@ -51,6 +51,7 @@ TEMPLATES = {
     "firebreather": {"category": "enemies", "threshold": 0.85},
     "raider_warrior": {"category": "enemies", "threshold": 0.85},
     "boom_boom": {"category": "enemies", "threshold": 0.85},
+    "raider_canoneer": {"category": "enemies", "threshold": 0.85},
 }
 
 
