@@ -1,16 +1,24 @@
 {
-    "mission_name": "gantas_iron",
+    "mission_name": "farm_wood",
     "pass_button": "pass_inactive_gantas",
+    "initial_moves": [
+        {
+            "troop": "soldier",
+            "skill": "1",
+            "target": [1394, 331],
+            "type": "coordinate"
+        }
+    ],
     "troop_priority": [
         "heavy",
-        "wimp",
-        "umg",
-        "tk"
+        "tk",
+        "soldier",
+        "heavy_tank",
+        "wimp"
     ],
     "enemy_priority": [
-        "firebreather",
-        "dustwalker1",
-        "mammoth"
+        "raider_warrior",
+        "raider_canoneer"
     ],
     "skill_priorities": {
         "heavy": [
@@ -25,15 +33,10 @@
         ],
         "wimp": [
             1
-        ],
-        "umg": [
-            1
         ]
     },
     "rewards": {
-        "gold": 530,
-        "stone": 10,
-        "wood": 5,
-        "iron": 10
+        "gold": 330,
+        "wood": 120
     }
 }

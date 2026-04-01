@@ -8,6 +8,7 @@ import os
 from dotenv import load_dotenv
 from enum import Enum, auto
 from typing import Optional, Tuple, Dict, Any, List
+import random
 
 import pyautogui
 import numpy as np
@@ -15,7 +16,7 @@ from pynput import keyboard
 
 from config import (
     STATE_CHECK_INTERVAL, SHORT_DELAY, 
-    LONG_DELAY, STUCK_DETECTION_THRESHOLD
+    LONG_DELAY, CLICK_DELAY, STUCK_DETECTION_THRESHOLD
 )
 from window_capture import WindowCapture
 from template_matcher import TemplateMatcher, MatchResult
@@ -24,6 +25,7 @@ from template_matcher import TemplateMatcher, MatchResult
 EXIT_KEY = keyboard.Key.esc
 PAUSE_KEY = 'p'
 UNPAUSE_KEY = 'u'
+CENTER = [1234, 409] # Center of enemy side
 
 def setup_logging():
     # 1. Load settings (Assumes load_dotenv() was called before this!)
@@ -92,10 +94,12 @@ class BattleStateMachine:
         self.troop_data = self._load_config("troops.json")
         self.rewards_config = self.mission_config.get("rewards", {})
         self.pass_button_type = self.mission_config.get("pass_button")
+        self.initial_moves_queue = list(self.mission_config.get("initial_moves", []))
 
         logger.debug(f"Mission Config Loaded: {self.mission_config.get('mission_name', 'Missing')}")
         logger.debug(f"Troop Data Loaded: {len(self.troop_data)} units")
         logger.debug(f"Pass Button Type: {self.pass_button_type}")
+        logger.debug(f"Initial Moves Queue: {self.initial_moves_queue}")
 
         if not self.mission_config or not self.troop_data or not self.pass_button_type:
             logger.warning("Config values are missing. Check config name and contents.")
@@ -210,7 +214,7 @@ class BattleStateMachine:
         return BattleState.UNKNOWN, None
 
     def click_coords(self, coords: Tuple[int, int], name: str = "Coordinate"):
-        """Execute a resilient click on absolute coordinates relative to the window."""
+        """click on absolute coordinates relative to the window."""
         region = self.window_capture.get_window_region()
         if not region: return
         
@@ -221,12 +225,31 @@ class BattleStateMachine:
         logger.debug(f"Clicking {name} at ({screen_x}, {screen_y})")
         pyautogui.moveTo(screen_x, screen_y, duration=0.1)
         pyautogui.mouseDown()
-        time.sleep(0.1) 
+        time.sleep(CLICK_DELAY) 
         pyautogui.mouseUp()
 
     def click_match(self, match: MatchResult):
         """Wrapper for click_coords using a MatchResult."""
         self.click_coords(match.center, match.name)
+
+    def click_and_drag(self, coords: Tuple[int, int], match: MatchResult):
+        """click and drag."""
+        region = self.window_capture.get_window_region()
+        if not region: return
+        
+        left, top, _, _ = region
+        x, y = coords
+        screen_x, screen_y = left + x, top + y
+        
+        logger.debug(f"Dragging from {coords} to ({screen_x}, {screen_y})")
+
+        pyautogui.moveTo(screen_x, screen_y, duration=0.1)
+        pyautogui.mouseDown()
+        pyautogui.moveTo(match.center[0], match.center[1], duration=0.1)
+        pyautogui.mouseUp()
+        pyautogui.mouseDown()
+        time.sleep(CLICK_DELAY)
+        pyautogui.mouseUp()
 
     def _discover_troops(self, screenshot: np.ndarray):
         """Scan board once to identify friendly unit positions."""
@@ -253,6 +276,10 @@ class BattleStateMachine:
         logger.debug("--- Resetting battle state for new encounter ---")
         self.pending_action = None
         self.was_animating = False
+
+        # Load a fresh copy of the initial moves queue
+        self.initial_moves_queue = list(self.mission_config.get("initial_moves", []))
+
         for troop in self.deployed_troops:
             troop["has_acted"] = False
             for skill_id in troop["cooldowns"]:
@@ -268,15 +295,20 @@ class BattleStateMachine:
                     troop["cooldowns"][skill_id] -= 1
                     logger.debug(f"  [{troop['name']}] Skill {skill_id} CD reduced to {troop['cooldowns'][skill_id]}")
 
-    def shoot(self, troop_dict: Dict, enemy: MatchResult, skill_id: str):
+    def shoot(self, troop_dict: Dict, enemy: MatchResult, skill_id: str, type: str = "click"):
         """Execute attack and prepare for cooldown confirmation."""
         logger.debug(f"ACT: {troop_dict['name']} (Skill {skill_id}) -> {enemy.name}")
         
         # 1. Execute clicks
-        self.click_coords(troop_dict["pos"], troop_dict["name"])
-        time.sleep(SHORT_DELAY)
-        # (Assuming skill selection logic will go here once templates are available)
-        self.click_match(enemy)
+        if type == "click":
+            self.click_coords(troop_dict["pos"], troop_dict["name"])
+            time.sleep(SHORT_DELAY)
+            # (Assuming skill selection logic will go here once templates are available)
+            self.click_match(enemy)
+        elif type == "drag":
+            self.click_coords(troop_dict["pos"], troop_dict["name"])
+            time.sleep(SHORT_DELAY)
+            self.click_and_drag(CENTER, enemy)
         
         # 2. Mark as acted
         troop_dict["has_acted"] = True
@@ -294,6 +326,38 @@ class BattleStateMachine:
             logger.debug(f"  Action pending confirmation for {troop_dict['name']}")
             
         time.sleep(LONG_DELAY)
+
+    def _execute_hardcoded_move(self, move: Dict, screenshot: np.ndarray):
+        """Executes a single move from the initial_moves_queue."""
+        troop_name = move["troop"]
+        skill_id = str(move["skill"])
+        target = move["target"]
+        target_type = move["type"]
+
+        # 1. Find the troop in our deployed list
+        troop = next((t for t in self.deployed_troops if t["name"] == troop_name and not t["has_acted"] and t["cooldowns"].get(skill_id, 0) == 0), None)
+        
+        if not troop:
+            logger.warning(f"Opening Move Failed: {troop_name} already acted or not found.")
+            return
+
+        # 2. Determine target coordinates
+        target_coords = None
+        if target_type == "coordinate":
+            target_coords = tuple(target)
+        elif target_type == "template":
+            # Sniper match for the specific target
+            match = self.matcher.match_template(screenshot, target)
+            if match:
+                target_coords = match.center
+
+        # 3. Shoot
+        if target_coords:
+            logger.info(f"Opener: {troop_name} using Skill {skill_id} on {target}")
+            self.shoot(troop, MatchResult(name=str(target), location=target_coords, confidence=1.0, size=(0,0)), skill_id, type="drag")
+        else:
+            logger.warning(f"Opener target {target} not found! Skipping move.")
+
 
     def step(self):
         """Main Observe-Think-Act iteration."""
@@ -340,29 +404,30 @@ class BattleStateMachine:
                 time.sleep(SHORT_DELAY)
 
             elif self.state == BattleState.EXECUTE_MOVE and match:
-                # prevent race conditions if lag, do nothing while waiting for a previous attack to register
-                # commenting this out, hangs the program sometimes
-                # if self.pending_action is not None:
-                #     logger.debug("pending action + execute_move pass")
-                #     return
 
-                # 1. Discover troops if needed
+                # Discover troops if needed
                 if not self.troops_discovered:
                     self._discover_troops(screenshot)
                     self._on_turn_start() # Initialize flags for Turn 1
 
-                # 2. Identify Enemies
+                # Check for hardcoded openings
+                if self.initial_moves_queue:
+                    move = self.initial_moves_queue.pop(0)
+                    self._execute_hardcoded_move(move, screenshot)
+                    return
+
+                # Identify Enemies
                 # enemies = self.matcher.match_category(screenshot, "enemies")
                 enemies = self.matcher.match_whitelist(
                     screenshot, 
                     self.enemy_prio, 
                     multiple=True
                 )
-                
+    
                 if enemies:
                     logger.debug(f"Detected Enemies: {', '.join([e.name for e in enemies])}")
 
-                # 3. Find first ready troop that hasn't acted (using pre-loaded priority)
+                # Find first ready troop that hasn't acted (using pre-loaded priority)
                 best_enemy = self._get_priority_match(enemies, self.enemy_prio)
 
                 if best_enemy:
@@ -391,13 +456,19 @@ class BattleStateMachine:
                     self.click_match(match)
                     time.sleep(SHORT_DELAY)
                 else:
-                    logger.debug("No enemies found. Shouldn't get here")
+                    logger.debug("No enemies found. Clicked on anti-air unit?")
+                    # pick a random troop, we should click a unit without an active anti-air attack quickly
+                    target = random.choice(self.deployed_troops)
+                    
+                    logger.debug(f"Random unit clicked: {target['name']}.")
+                    # logger.info(f"UI Recovery: Clicking {target['name']} to clear target error symbols.")
+                    self.click_coords(target["pos"], target["name"])
 
             elif self.state == BattleState.POST_BATTLE and match:
                 if match.name in ["finish_ok", "sp_ok"]:
                     # Two buttons to click in the same place. No need to template match both
                     self.click_match(match)
-                    time.sleep(0.1)
+                    time.sleep(CLICK_DELAY)
                     self.click_match(match)
                     
                     # Increment run count
@@ -408,7 +479,8 @@ class BattleStateMachine:
 
             else:
                 if self.state == BattleState.ANIMATING:
-                    logger.debug("Currently animating... waiting for state change.")
+                    # logger.debug("Currently animating... waiting for state change.")
+                    pass
                 else:
                     logger.info("No matching template found.")
                 time.sleep(SHORT_DELAY)
