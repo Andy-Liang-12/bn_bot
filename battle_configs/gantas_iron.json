@@ -3,10 +3,9 @@
     "pass_button": "pass_inactive_gantas",
     "troop_priority": [
         "heavy",
-        "tk",
-        "heavy_tank",
         "wimp",
-        "field_agent"
+        "umg",
+        "tk"
     ],
     "enemy_priority": [
         "firebreather",
@@ -25,6 +24,9 @@
             1
         ],
         "wimp": [
+            1
+        ],
+        "umg": [
             1
         ]
     },

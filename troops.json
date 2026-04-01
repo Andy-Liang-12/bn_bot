@@ -43,5 +43,12 @@
                 "cooldown": 3
             }
         }
+    },
+    "umg": {
+        "skills": {
+            "1": {
+                "cooldown": 3
+            }
+        }
     }
 }

@@ -8,6 +8,7 @@ import os
 from dotenv import load_dotenv
 from enum import Enum, auto
 from typing import Optional, Tuple, Dict, Any, List
+import random
 
 import pyautogui
 import numpy as np
@@ -455,7 +456,13 @@ class BattleStateMachine:
                     self.click_match(match)
                     time.sleep(SHORT_DELAY)
                 else:
-                    logger.debug("No enemies found. Shouldn't get here")
+                    logger.debug("No enemies found. Clicked on anti-air unit?")
+                    # pick a random troop, we should click a unit without an active anti-air attack quickly
+                    target = random.choice(self.deployed_troops)
+                    
+                    logger.debug(f"Random unit clicked: {target['name']}.")
+                    # logger.info(f"UI Recovery: Clicking {target['name']} to clear target error symbols.")
+                    self.click_coords(target["pos"], target["name"])
 
             elif self.state == BattleState.POST_BATTLE and match:
                 if match.name in ["finish_ok", "sp_ok"]:

@@ -42,7 +42,8 @@ TEMPLATES = {
     "tk": {"category": "troops", "threshold": 0.88},
     "heavy_tank": {"category": "troops", "threshold": 0.90},
     "wimp": {"category": "troops", "threshold": 0.95},
-    # "field_agent": {"category": "troops", "threshold": 0.85},
+    "field_agent": {"category": "troops", "threshold": 0.85},
+    "umg": {"category": "troops", "threshold": 0.85},
 
     # Enemies
     "mammoth": {"category": "enemies", "threshold": 0.85},
