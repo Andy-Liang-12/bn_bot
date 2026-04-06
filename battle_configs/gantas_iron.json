@@ -2,9 +2,9 @@
     "mission_name": "gantas_iron",
     "pass_button": "pass_inactive_gantas",
     "troop_priority": [
+        "umg",
         "heavy",
         "wimp",
-        "umg",
         "tk"
     ],
     "enemy_priority": [

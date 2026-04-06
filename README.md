@@ -1,0 +1,1 @@
+bn_venv\Scripts\activate

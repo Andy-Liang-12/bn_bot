@@ -53,6 +53,7 @@ TEMPLATES = {
     "raider_warrior": {"category": "enemies", "threshold": 0.85},
     "boom_boom": {"category": "enemies", "threshold": 0.85},
     "raider_canoneer": {"category": "enemies", "threshold": 0.85},
+    "raider_skirmisher": {"category": "enemies", "threshold": 0.90},
 }
 
 

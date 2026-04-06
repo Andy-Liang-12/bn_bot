@@ -1,0 +1,54 @@
+{
+    "mission_name": "tronk_stone",
+    "pass_button": "pass_inactive_gantas",
+    "initial_moves": [
+        {
+            "troop": "umg",
+            "skill": "1",
+            "target": [
+                1166,
+                443
+            ],
+            "type": "coordinate"
+        },
+        {
+            "troop": "umg",
+            "skill": "1",
+            "target": [
+                1166,
+                443
+            ],
+            "type": "coordinate"
+        },
+        {
+            "troop": "umg",
+            "skill": "1",
+            "target": [
+                1166,
+                443
+            ],
+            "type": "coordinate"
+        }
+    ],
+    "troop_priority": [
+        "umg",
+        "wimp"
+    ],
+    "enemy_priority": [
+        "raider_skirmisher",
+        "boom_boom",
+        "raider_warrior"
+    ],
+    "skill_priorities": {
+        "wimp": [
+            1
+        ],
+        "umg": [
+            1
+        ]
+    },
+    "rewards": {
+        "gold": 1002,
+        "stone": 50
+    }
+}

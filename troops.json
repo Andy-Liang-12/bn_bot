@@ -40,7 +40,8 @@
     "soldier": {
         "skills": {
             "1": {
-                "cooldown": 3
+                "cooldown": 3,
+                "type": "drag"
             }
         }
     },

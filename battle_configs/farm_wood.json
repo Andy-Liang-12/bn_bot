@@ -11,10 +11,9 @@
     ],
     "troop_priority": [
         "heavy",
+        "wimp",
         "tk",
-        "soldier",
-        "heavy_tank",
-        "wimp"
+        "soldier"
     ],
     "enemy_priority": [
         "raider_warrior",
