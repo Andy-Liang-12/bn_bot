@@ -23,6 +23,7 @@
     ],
     "troop_priority": [
         "heavy",
+        "umg",
         "wimp",
         "soldier"
     ],

@@ -354,7 +354,9 @@ class BattleStateMachine:
         # 3. Shoot
         if target_coords:
             logger.info(f"Opener: {troop_name} using Skill {skill_id} on {target}")
-            self.shoot(troop, MatchResult(name=str(target), location=target_coords, confidence=1.0, size=(0,0)), skill_id, type="drag")
+            skill_info = self.troop_data.get(troop_name, {}).get("skills", {}).get(skill_id, {})
+            attack_type = skill_info.get("type", "click") # Default to click if not found
+            self.shoot(troop, MatchResult(name=str(target), location=target_coords, confidence=1.0, size=(0,0)), skill_id, type=attack_type)
         else:
             logger.warning(f"Opener target {target} not found! Skipping move.")
 
@@ -501,6 +503,7 @@ class BattleStateMachine:
         print("=" * 60)
         print(f"Total Runs: {self.run_count}")
         print(f"Elapsed Time: {hours:02d}:{minutes:02d}:{seconds:02d}")
+        print(f"Average Time per Run: {duration / self.run_count:.2f} seconds" if self.run_count > 0 else "Average Time per Run: N/A")
         print("-" * 60)
         
         if self.rewards_config:

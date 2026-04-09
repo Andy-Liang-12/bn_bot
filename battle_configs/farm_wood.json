@@ -10,9 +10,7 @@
         }
     ],
     "troop_priority": [
-        "heavy",
-        "wimp",
-        "tk",
+        "umg",
         "soldier"
     ],
     "enemy_priority": [
