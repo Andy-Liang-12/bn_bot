@@ -8,11 +8,14 @@ The goal is to develop a resilient, reactive auto-battler for Battle Nations tha
 
 **2\. Architecture**
 
-The project is split into three modular layers to ensure portability and ease of debugging:
+The project is split into modular layers to ensure portability and ease of debugging:
 
-* **Vision Engine:** The "Eyes." Responsible for template matching, finding all enemy instances, and identifying UI anchors based on existing code. capture.py, template_matcher.py, and window_capture.py make up the vision engine. test_matching.py demonstrates usage.  
-* **Reactive State Machine:** The "Brain." A robust loop that determines the game state and executes moves based on visual cues rather than fixed timers.  
-* **Mission Configs:** The "Data." JSON-based configurations that define troop priority and deployment for specific farm spots.
+* **Vision Engine:** The "Eyes." Responsible for template matching, finding all enemy instances, and identifying UI anchors. Components: `capture.py`, `template_matcher.py` (with ROI caching), and `window_capture.py`.  
+* **Reactive State Machine:** The "Brain." A robust loop in `state_machine.py` that determines the game state and executes moves based on visual cues.  
+* **Configuration:** The "Data." 
+    * `config.py`: Global settings, match thresholds, and template categories.
+    * `battle_configs/*.json`: Mission-specific troop priority, enemy priority, and deployment.
+    * `troops.json`: Unit-specific data including skill cooldowns and attack types (click vs. drag).
 
 ## ---
 
@@ -26,42 +29,44 @@ To solve timing and RNG issues, the bot uses a **Finite State Machine (FSM)**. I
 | :---- | :---- | :---- |
 | **PRE\_BATTLE** | Detects "Fight" button or Deployment UI. | Deploys troops and clicks "Fight." |
 | **SCANNING** | No animations detected \+ "Pass" button visible. | Identifies all remaining enemies and friendly units. |
-| **SELECT\_UNIT** | Detects Blue Highlight on a friendly unit. | If no unit is highlighted, clicks the next available troop. |
-| **EXECUTE\_MOVE** | Ability icons visible \+ Active unit identified. | Clicks skill → Clicks highest priority target tile. |
-| **ANIMATING** | Screen pixel variance is high / UI elements missing. | Wait/Poll until the board "settles." |
-| **POST\_BATTLE** | Detects "Victory," "Defeat," or "Redo" buttons. | Navigates back to the start and resets the loop. |
+| **EXECUTE\_MOVE** | "Pass" button active \+ Turn started. | Executes initial moves OR selects troop → clicks skill → clicks target. |
+| **ANIMATING** | Screen pixel variance is high / "Pass" button inactive. | Wait/Poll until the board "settles." |
+| **POST\_BATTLE** | Detects "Victory," "Defeat," or "OK" buttons. | Navigates back to the start and resets the loop. |
 
 ### **Resiliency Logic:**
 
-* **State Verification:** Before every click, the bot re-verifies the state. If a click fails to transition the state within a reasonable timeout, the bot retries.  
+* **ROI Caching:** To increase speed, once a UI element (like the "Pass" button) is found, the bot caches its Region of Interest (ROI) and checks there first in subsequent frames.
+* **Pending Action Confirmation:** Cooldowns for skills are only registered if the bot detects an `ANIMATING` state immediately after an action, confirming the move was accepted by the game.
 * **Observation-First:** Because attacks can be dodged, the bot re-scans the board every single turn to identify remaining HP/targets instead of tracking damage internally.
 
 ## ---
 
 **4\. Configuration & Targeting Logic**
 
-Instead of hardcoding the logic for every battle, we use a mission\_config.json. This allows the bot to handle different encounters without changing the core engine.
+The bot is driven by the `MISSION_CONFIG` environment variable, which points to a specific file in the `battle_configs/` directory.
 
 ### **Config Structure:**
 
-* **Priority Queue:** A ranked list of enemy templates (e.g., \[mammoth, artillery, grunt\]). The bot always attacks the highest-ranked unit visible on the board.  
-* **Ability Mapping:** Defines which skill (1, 2, or 3\) should be used for specific unit types or situations.  
-* **Deployment Mapping:** Specific tiles to place troops during the setup phase.
+* **Initial Moves:** A sequence of hardcoded moves (troop, skill, target) to execute at the start of a battle (e.g., openers).
+* **Priority Queues:** 
+    * `troop_priority`: The order in which friendly units are selected to act.
+    * `enemy_priority`: The order in which enemy targets are prioritized.
+* **Skill Mapping:** Defines the preferred skill order (1, 2, or 3) for each unit type.
 
 ### **Targeting Heuristic:**
 
-1. **Identity:** Scan all enemies using the Vision Engine's match\_all functionality.  
-2. **Filter:** Cross-reference found enemies with the Priority Queue in the mission config.  
-3. **Target:** Click the tile of the highest-priority enemy that is still alive.
+1. **Identity:** Scan all enemies using the Vision Engine's `match_whitelist` functionality.  
+2. **Filter:** Cross-reference found enemies with the `enemy_priority` in the mission config.  
+3. **Target:** Select the highest-priority enemy and the first available troop (based on `troop_priority`) whose skill is not on cooldown.
 
 ## ---
 
 **5\. Development Roadmap**
 
-1. **Template Gathering:** Use the capture.py utility to build a library of UI buttons and unit sprites.  
-2. **State Identification:** Fine-tune the "Wait for Turn" detection (Blue highlight vs. UI anchors).  
-3. **Heuristic Implementation:** Build the logic that selects the "best" target from the config list.  
-4. **Error Recovery:** Implement "Fail-Safe" states to handle game crashes or potential network disconnects.
+1. **Template Gathering:** Use the `capture.py` utility to build a library of UI buttons and unit sprites. (Completed)
+2. **State Identification:** Fine-tune the "Wait for Turn" detection (ROI caching and variance checks). (Completed)
+3. **Heuristic Implementation:** Build the logic that selects the "best" target from the config list. (Completed)
+4. **Error Recovery:** Implement "Fail-Safe" states to handle game crashes or potential network disconnects. (In Progress)
 
 ---
 
