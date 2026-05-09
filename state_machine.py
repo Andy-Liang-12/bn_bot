@@ -258,7 +258,7 @@ class BattleStateMachine:
         
         self.deployed_troops = []
         for m in matches:
-            logger.debug(f"Discovered [{m.name}] at {m.center} with confidence {m.confidence:.2f}")
+            logger.info(f"Discovered [{m.name}] at {m.center} with confidence {m.confidence:.2f}")
             self.deployed_troops.append({
                 "name": m.name,
                 "pos": m.center,
@@ -346,7 +346,7 @@ class BattleStateMachine:
         if target_type == "coordinate":
             target_coords = tuple(target)
         elif target_type == "template":
-            # Sniper match for the specific target
+            # Match for the specific enemy
             match = self.matcher.match_template(screenshot, target)
             if match:
                 target_coords = match.center

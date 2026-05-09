@@ -3,15 +3,27 @@
     "pass_button": "pass_inactive_gantas",
     "initial_moves": [
         {
-            "troop": "soldier",
+            "troop": "umg",
             "skill": "1",
-            "target": [1394, 331],
+            "target": [
+                1144,
+                451
+            ],
+            "type": "coordinate"
+        },
+        {
+            "troop": "umg",
+            "skill": "1",
+            "target": [
+                1144,
+                451
+            ],
             "type": "coordinate"
         }
     ],
     "troop_priority": [
         "umg",
-        "soldier"
+        "tk"
     ],
     "enemy_priority": [
         "raider_warrior",
@@ -25,10 +37,7 @@
         "tk": [
             1
         ],
-        "heavy_tank": [
-            1
-        ],
-        "wimp": [
+        "umg": [
             1
         ]
     },

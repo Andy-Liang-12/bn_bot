@@ -6,8 +6,8 @@
             "troop": "umg",
             "skill": "1",
             "target": [
-                1166,
-                443
+                1144,
+                451
             ],
             "type": "coordinate"
         },
@@ -15,8 +15,8 @@
             "troop": "umg",
             "skill": "1",
             "target": [
-                1166,
-                443
+                1144,
+                451
             ],
             "type": "coordinate"
         },
@@ -24,8 +24,8 @@
             "troop": "umg",
             "skill": "1",
             "target": [
-                1166,
-                443
+                1144,
+                451
             ],
             "type": "coordinate"
         }
@@ -37,7 +37,8 @@
     "enemy_priority": [
         "raider_skirmisher",
         "boom_boom",
-        "raider_warrior"
+        "raider_warrior",
+        "raider_canoneer"
     ],
     "skill_priorities": {
         "wimp": [

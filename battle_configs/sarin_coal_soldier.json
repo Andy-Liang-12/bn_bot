@@ -3,38 +3,20 @@
     "pass_button": "pass_inactive_sarin",
     "initial_moves": [
         {
-            "troop": "umg",
+            "troop": "soldier",
             "skill": "1",
             "target": [
-                1144,
-                451
+                1394,
+                331
             ],
             "type": "coordinate"
         },
         {
-            "troop": "heavy",
+            "troop": "soldier",
             "skill": "1",
             "target": [
-                1144,
-                451
-            ],
-            "type": "coordinate"
-        },
-        {
-            "troop": "umg",
-            "skill": "1",
-            "target": [
-                1144,
-                451
-            ],
-            "type": "coordinate"
-        },
-        {
-            "troop": "umg",
-            "skill": "1",
-            "target": [
-                1144,
-                451
+                1394,
+                331
             ],
             "type": "coordinate"
         }
@@ -43,7 +25,8 @@
         "heavy",
         "umg",
         "tk",
-        "wimp"
+        "wimp",
+        "soldier"
     ],
     "enemy_priority": [
         "raider_warrior",
