@@ -10,10 +10,10 @@ The goal is to develop a resilient, reactive auto-battler for Battle Nations tha
 
 The project is split into modular layers to ensure portability and ease of debugging:
 
-* **Vision Engine:** The "Eyes." Responsible for template matching, finding all enemy instances, and identifying UI anchors. Components: `capture.py`, `template_matcher.py` (with ROI caching), and `window_capture.py`.  
+* **Vision Engine:** The "Eyes." Responsible for template matching, finding all enemy instances, and identifying UI anchors. Supports **manual click offsets** to handle sprites that extend beyond the clickable grid. Components: `capture.py`, `template_matcher.py` (with ROI caching), and `window_capture.py`.  
 * **Reactive State Machine:** The "Brain." A robust loop in `state_machine.py` that determines the game state and executes moves based on visual cues.  
 * **Configuration:** The "Data." 
-    * `config.py`: Global settings, match thresholds, and template categories.
+    * `config.py`: Global settings, match thresholds, **click offsets**, and template categories.
     * `battle_configs/*.json`: Mission-specific troop priority, enemy priority, and deployment.
     * `troops.json`: Unit-specific data including skill cooldowns and attack types (click vs. drag).
 
@@ -67,6 +67,12 @@ The bot is driven by the `MISSION_CONFIG` environment variable, which points to 
 2. **State Identification:** Fine-tune the "Wait for Turn" detection (ROI caching and variance checks). (Completed)
 3. **Heuristic Implementation:** Build the logic that selects the "best" target from the config list. (Completed)
 4. **Error Recovery:** Implement "Fail-Safe" states to handle game crashes or potential network disconnects. (In Progress)
+
+## ---
+
+**6\. Game notes**
+
+The in-game battles are turn-based. The battles take place on an isometric grid. 
 
 ---
 

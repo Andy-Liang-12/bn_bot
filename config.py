@@ -54,7 +54,7 @@ TEMPLATES = {
     "boom_boom": {"category": "enemies", "threshold": 0.85},
     "raider_canoneer": {"category": "enemies", "threshold": 0.85},
     "raider_skirmisher": {"category": "enemies", "threshold": 0.90},
-    "sw_warrior": {"category": "enemies", "threshold": 0.80}
+    "sw_warrior": {"category": "enemies", "threshold": 0.85, "click_offset": (0, 20)}
 }
 
 
@@ -71,3 +71,10 @@ def get_template_threshold(name: str) -> float:
     if name not in TEMPLATES:
         raise KeyError(f"Unknown template: {name}")
     return TEMPLATES[name]["threshold"]
+
+
+def get_template_offset(name: str) -> Tuple[int, int]:
+    """Get the manual click offset for a template."""
+    if name not in TEMPLATES:
+        return (0, 0)
+    return tuple(TEMPLATES[name].get("click_offset", (0, 0)))

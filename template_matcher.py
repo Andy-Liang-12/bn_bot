@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import numpy as np
 import cv2
 
-from config import TEMPLATES, get_template_path, get_template_threshold
+from config import TEMPLATES, get_template_path, get_template_threshold, get_template_offset
 
 logger = logging.getLogger(__name__)
 
@@ -19,13 +19,15 @@ class MatchResult:
     location: Tuple[int, int]  # Always global (relative to full screenshot)
     size: Tuple[int, int]
     roi_used: bool = False
+    click_offset: Tuple[int, int] = (0, 0)
     
     @property
     def center(self) -> Tuple[int, int]:
-        """Get center point of the match."""
+        """Get center point of the match, applying manual offset."""
         x, y = self.location
         w, h = self.size
-        return (x + w // 2, y + h // 2)
+        ox, oy = self.click_offset
+        return (x + w // 2 + ox, y + h // 2 + oy)
     
     @property
     def rectangle(self) -> Tuple[Tuple[int, int], Tuple[int, int]]:
@@ -118,7 +120,8 @@ class TemplateMatcher:
                     confidence=float(max_val),
                     location=(max_loc[0] + offset_x, max_loc[1] + offset_y),
                     size=(template.shape[1], template.shape[0]),
-                    roi_used=roi_flag
+                    roi_used=roi_flag,
+                    click_offset=get_template_offset(name)
                 )
             
             return None
@@ -188,7 +191,8 @@ class TemplateMatcher:
                     confidence=conf,
                     location=(x + offset_x, y + offset_y),
                     size=(w, h),
-                    roi_used=bool(roi)
+                    roi_used=bool(roi),
+                    click_offset=get_template_offset(name)
                 ))
             return matches
 
