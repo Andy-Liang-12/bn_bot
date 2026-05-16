@@ -16,7 +16,8 @@ from pynput import keyboard
 
 from config import (
     STATE_CHECK_INTERVAL, SHORT_DELAY, 
-    LONG_DELAY, CLICK_DELAY, STUCK_DETECTION_THRESHOLD
+    LONG_DELAY, CLICK_DELAY, STUCK_DETECTION_THRESHOLD,
+    SKILL_COORDS
 )
 from window_capture import WindowCapture
 from template_matcher import TemplateMatcher, MatchResult
@@ -299,18 +300,25 @@ class BattleStateMachine:
         """Execute attack and prepare for cooldown confirmation."""
         logger.debug(f"ACT: {troop_dict['name']} (Skill {skill_id}) -> {enemy.name}")
         
-        # 1. Execute clicks
-        if type == "click":
-            self.click_coords(troop_dict["pos"], troop_dict["name"])
+        # 1. Select the troop
+        self.click_coords(troop_dict["pos"], troop_dict["name"])
+        time.sleep(SHORT_DELAY)
+
+        # 2. Select the skill if it's not skill 1
+        if skill_id != "1" and skill_id in SKILL_COORDS:
+            logger.debug(f"Selecting Skill {skill_id} at {SKILL_COORDS[skill_id]}")
+            self.click_coords(SKILL_COORDS[skill_id], f"Skill_{skill_id}")
             time.sleep(SHORT_DELAY)
-            # (Assuming skill selection logic will go here once templates are available)
+
+        # 3. Execute attack on target
+        if type == "click":
+            logger.debug(f"Executing click attack for {troop_dict['name']} Skill {skill_id} on {enemy.name}")
             self.click_match(enemy)
         elif type == "drag":
-            self.click_coords(troop_dict["pos"], troop_dict["name"])
-            time.sleep(SHORT_DELAY)
+            logger.debug(f"Executing drag attack for {troop_dict['name']} Skill {skill_id} on {enemy.name}")
             self.click_and_drag(CENTER, enemy)
         
-        # 2. Mark as acted
+        # 4. Mark as acted
         troop_dict["has_acted"] = True
         
         # 3. Prepare Pending Action (Confirm CD only if we see ANIMATING)

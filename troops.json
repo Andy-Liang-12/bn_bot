@@ -51,5 +51,13 @@
                 "cooldown": 3
             }
         }
+    },
+    "mauler": {
+        "skills": {
+            "3": {
+                "cooldown": 5,
+                "type": "drag"
+            }
+        }
     }
 }

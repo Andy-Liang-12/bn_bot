@@ -6,17 +6,26 @@
             "troop": "soldier",
             "skill": "1",
             "target": [
-                1394,
-                331
+                1363,
+                319
             ],
             "type": "coordinate"
         },
-        {
+       {
             "troop": "soldier",
             "skill": "1",
             "target": [
-                1394,
-                331
+                1363,
+                319
+            ],
+            "type": "coordinate"
+        },
+                {
+            "troop": "umg",
+            "skill": "1",
+            "target": [
+                1144,
+                451
             ],
             "type": "coordinate"
         }

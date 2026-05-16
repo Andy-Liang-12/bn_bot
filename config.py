@@ -23,6 +23,13 @@ STATE_CHECK_INTERVAL = 0.2
 MAX_STATE_RETRIES = 10
 STUCK_DETECTION_THRESHOLD = 20.0
 
+# Hardcoded coordinates for skill buttons at the bottom of the screen
+SKILL_COORDS = {
+    "1": (466, 1117), # Optional: usually default, but can be used for explicit selection
+    "2": (628, 1118),
+    "3": (785, 1119)
+}
+
 TEMPLATES = {
     # Battle setup and flow
     "fight_button": {"category": "battle", "threshold": 0.92},
@@ -44,6 +51,7 @@ TEMPLATES = {
     "wimp": {"category": "troops", "threshold": 0.95},
     "field_agent": {"category": "troops", "threshold": 0.85},
     "umg": {"category": "troops", "threshold": 0.85},
+    "mauler": {"category": "troops", "threshold": 0.90},
 
     # Enemies
     "mammoth": {"category": "enemies", "threshold": 0.85},

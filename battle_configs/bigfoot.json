@@ -27,7 +27,25 @@
             "type": "coordinate"
         },
         {
-            "troop": "heavy",
+            "troop": "umg",
+            "skill": "1",
+            "target": [
+                1144,
+                451
+            ],
+            "type": "coordinate"
+        },
+        {
+            "troop": "umg",
+            "skill": "1",
+            "target": [
+                1144,
+                451
+            ],
+            "type": "coordinate"
+        },
+        {
+            "troop": "umg",
             "skill": "1",
             "target": [
                 1144,
