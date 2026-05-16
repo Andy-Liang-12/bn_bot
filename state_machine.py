@@ -11,6 +11,7 @@ from typing import Optional, Tuple, Dict, Any, List
 import random
 
 import pyautogui
+import pydirectinput
 import numpy as np
 from pynput import keyboard
 
@@ -234,23 +235,28 @@ class BattleStateMachine:
         self.click_coords(match.center, match.name)
 
     def click_and_drag(self, coords: Tuple[int, int], match: MatchResult):
-        """click and drag."""
+        """click and drag using pydirectinput for better game compatibility."""
         region = self.window_capture.get_window_region()
         if not region: return
         
         left, top, _, _ = region
-        x, y = coords
-        screen_x, screen_y = left + x, top + y
         
-        logger.debug(f"Dragging from {coords} to ({screen_x}, {screen_y})")
+        start_x, start_y = left + coords[0], top + coords[1]
+        end_x, end_y = left + match.center[0], top + match.center[1]
+        
+        logger.debug(f"Dragging (DirectInput) from ({start_x}, {start_y}) to ({end_x}, {end_y})")
 
-        pyautogui.moveTo(screen_x, screen_y, duration=0.1)
-        pyautogui.mouseDown()
-        pyautogui.moveTo(match.center[0], match.center[1], duration=0.1)
-        pyautogui.mouseUp()
-        pyautogui.mouseDown()
+        # 1. Move to start and press down
+        pydirectinput.moveTo(start_x, start_y)
         time.sleep(CLICK_DELAY)
-        pyautogui.mouseUp()
+
+        pydirectinput.mouseDown()
+        time.sleep(CLICK_DELAY) 
+        pydirectinput.moveTo(end_x, end_y, duration=.05)
+        # time.sleep(CLICK_DELAY)
+        pydirectinput.mouseUp()
+        pydirectinput.click()
+        
 
     def _discover_troops(self, screenshot: np.ndarray):
         """Scan board once to identify friendly unit positions."""
