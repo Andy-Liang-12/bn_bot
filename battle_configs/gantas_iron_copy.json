@@ -1,7 +1,19 @@
 {
     "mission_name": "gantas_iron",
     "pass_button": "pass_inactive_gantas",
+    "initial_moves": [
+        {
+            "troop": "heavy",
+            "skill": "1",
+            "target": [
+                1082, 483
+            ],
+            "type": "coordinate"
+        }
+    ],
     "troop_priority": [
+        "heavy",
+        "thresher",
         "tk"
     ],
     "enemy_priority": [
@@ -17,13 +29,7 @@
         "tk": [
             1
         ],
-        "heavy_tank": [
-            1
-        ],
-        "wimp": [
-            1
-        ],
-        "umg": [
+        "thresher": [
             1
         ]
     },

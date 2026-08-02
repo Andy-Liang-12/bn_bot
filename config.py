@@ -18,7 +18,7 @@ TIMESTAMP_FORMAT = "%Y%m%d_%H%M%S"
 
 CLICK_DELAY = 0.07 # Time (s) to hold mouse down for a click
 SHORT_DELAY = 0.2
-LONG_DELAY = 0.4
+LONG_DELAY = 0.8
 STATE_CHECK_INTERVAL = 0.2
 MAX_STATE_RETRIES = 10
 STUCK_DETECTION_THRESHOLD = 20.0
@@ -44,7 +44,7 @@ TEMPLATES = {
     "pass_inactive_sarin": {"category": "battle", "threshold": 0.92},
 
     # Troops
-    "heavy": {"category": "troops", "threshold": 0.90},
+    "heavy": {"category": "troops", "threshold": 0.90, "click_offset": (0, 10)},
     "soldier": {"category": "troops", "threshold": 0.88},
     "tk": {"category": "troops", "threshold": 0.88},
     "heavy_tank": {"category": "troops", "threshold": 0.90},
@@ -52,6 +52,8 @@ TEMPLATES = {
     "field_agent": {"category": "troops", "threshold": 0.85},
     "umg": {"category": "troops", "threshold": 0.85},
     "mauler": {"category": "troops", "threshold": 0.90},
+    "thresher": {"category": "troops", "threshold": 0.88},
+    "nomad": {"category": "troops", "threshold": 0.90},
 
     # Enemies
     "mammoth": {"category": "enemies", "threshold": 0.85},
@@ -62,7 +64,8 @@ TEMPLATES = {
     "boom_boom": {"category": "enemies", "threshold": 0.85},
     "raider_canoneer": {"category": "enemies", "threshold": 0.85},
     "raider_skirmisher": {"category": "enemies", "threshold": 0.90},
-    "sw_warrior": {"category": "enemies", "threshold": 0.85, "click_offset": (0, 20)}
+    "sw_warrior": {"category": "enemies", "threshold": 0.85, "click_offset": (0, 20)},
+    "sw_striker": {"category": "enemies", "threshold": 0.85, "click_offset": (-30, 120)},
 }
 
 

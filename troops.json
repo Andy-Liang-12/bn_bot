@@ -5,7 +5,8 @@
                 "cooldown": 3
             },
             "2": {
-                "cooldown": 3
+                "cooldown": 3,
+                "type": "drag"
             }
         }
     },
@@ -54,8 +55,27 @@
     },
     "mauler": {
         "skills": {
+            "1": {
+                "cooldown": 4,
+                "type": "drag"
+            },
             "3": {
                 "cooldown": 5,
+                "type": "drag"
+            }
+        }
+    },
+    "thresher": {
+        "skills": {
+            "1": {
+                "cooldown": 5
+            }
+        }
+    },
+    "nomad": {
+        "skills": {
+            "1": {
+                "cooldown": 3,
                 "type": "drag"
             }
         }

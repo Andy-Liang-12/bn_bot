@@ -1,9 +1,9 @@
 {
-    "mission_name": "gantas_iron",
-    "pass_button": "pass_inactive_gantas",
+    "mission_name": "bigfoot",
+    "pass_button": "pass_inactive_sarin",
         "initial_moves": [
         {
-            "troop": "umg",
+            "troop": "heavy",
             "skill": "1",
             "target": [
                 1082, 483
@@ -11,24 +11,21 @@
             "type": "coordinate"
         },
         {
-            "troop": "umg",
+            "troop": "nomad",
             "skill": "1",
-            "target": [
-                1082, 483
-            ],
-            "type": "coordinate"
+            "target": "sw_warrior",
+            "type": "template"
         }
     ],
     "troop_priority": [
-        "umg",
         "heavy",
-        "wimp",
+        "nomad",
+        "thresher",
         "tk"
     ],
     "enemy_priority": [
-        "firebreather",
-        "dustwalker1",
-        "mammoth"
+        "sw_warrior",
+        "sw_striker"
     ],
     "skill_priorities": {
         "heavy": [
@@ -49,9 +46,7 @@
         ]
     },
     "rewards": {
-        "gold": 530,
-        "stone": 10,
-        "wood": 5,
-        "iron": 10
+        "gold": 2430,
+        "stone": 150
     }
 }

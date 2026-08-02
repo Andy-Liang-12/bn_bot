@@ -6,8 +6,7 @@
             "troop": "umg",
             "skill": "1",
             "target": [
-                1144,
-                451
+                1082, 483
             ],
             "type": "coordinate"
         },
@@ -15,8 +14,7 @@
             "troop": "heavy",
             "skill": "1",
             "target": [
-                1144,
-                451
+                1082, 483
             ],
             "type": "coordinate"
         },
@@ -24,8 +22,7 @@
             "troop": "umg",
             "skill": "1",
             "target": [
-                1144,
-                451
+                1082, 483
             ],
             "type": "coordinate"
         },
@@ -33,8 +30,7 @@
             "troop": "umg",
             "skill": "1",
             "target": [
-                1144,
-                451
+                1082, 483
             ],
             "type": "coordinate"
         }

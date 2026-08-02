@@ -24,9 +24,18 @@
                     1233, 408
                 ],
                 "type": "coordinate"
-            },            {
+            },            
+            {
                 "troop": "mauler",
                 "skill": "3",
+                "target": [
+                    1076, 485
+                ],
+                "type": "coordinate"
+            },
+            {
+                "troop": "mauler",
+                "skill": "1",
                 "target": [
                     1076, 485
                 ],

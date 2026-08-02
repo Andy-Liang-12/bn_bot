@@ -225,7 +225,9 @@ class BattleStateMachine:
         screen_x, screen_y = left + x, top + y
         
         logger.debug(f"Clicking {name} at ({screen_x}, {screen_y})")
-        pyautogui.moveTo(screen_x, screen_y, duration=0.1)
+        random_offset_x = random.randint(-5, 5)
+        random_offset_y = random.randint(-5, 5)
+        pyautogui.moveTo(screen_x + random_offset_x, screen_y + random_offset_y, duration=0.1)
         pyautogui.mouseDown()
         time.sleep(CLICK_DELAY) 
         pyautogui.mouseUp()
@@ -245,14 +247,17 @@ class BattleStateMachine:
         end_x, end_y = left + match.center[0], top + match.center[1]
         
         logger.debug(f"Dragging (DirectInput) from ({start_x}, {start_y}) to ({end_x}, {end_y})")
-
+        random_offset_start_x = random.randint(-5, 5)
+        random_offset_start_y = random.randint(-5, 5)
+        random_offset_end_x = random.randint(-5, 5)
+        random_offset_end_y = random.randint(-5, 5)
         # 1. Move to start and press down
-        pydirectinput.moveTo(start_x, start_y)
+        pydirectinput.moveTo(start_x + random_offset_start_x, start_y + random_offset_start_y)
         time.sleep(CLICK_DELAY)
 
         pydirectinput.mouseDown()
         time.sleep(CLICK_DELAY) 
-        pydirectinput.moveTo(end_x, end_y, duration=.05)
+        pydirectinput.moveTo(end_x + random_offset_end_x, end_y + random_offset_end_y, duration=.05)
         # time.sleep(CLICK_DELAY)
         pydirectinput.mouseUp()
         pydirectinput.click()

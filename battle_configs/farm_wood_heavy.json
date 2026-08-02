@@ -6,24 +6,14 @@
             "troop": "heavy",
             "skill": "1",
             "target": [
-                1144,
-                451
-            ],
-            "type": "coordinate"
-        },
-        {
-            "troop": "umg",
-            "skill": "1",
-            "target": [
-                1144,
-                451
+                1082, 483
             ],
             "type": "coordinate"
         }
     ],
     "troop_priority": [
-        "umg",
-        "heavy"
+        "heavy",
+        "thresher"
     ],
     "enemy_priority": [
         "raider_warrior",
@@ -33,6 +23,9 @@
         "heavy": [
             1,
             2
+        ],
+        "thresher": [
+            1
         ],
         "tk": [
             1
