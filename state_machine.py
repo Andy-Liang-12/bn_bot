@@ -487,14 +487,12 @@ class BattleStateMachine:
 
             elif self.state == BattleState.POST_BATTLE and match:
                 if match.name in ["finish_ok", "sp_ok"]:
-                    # Two buttons to click in the same place. No need to template match both
-                    self.click_match(match)
-                    time.sleep(CLICK_DELAY)
                     self.click_match(match)
                     
                     # Increment run count
-                    self.run_count += 1
-                    logger.info(f"Battle #{self.run_count} completed.")
+                    if match.name == "finish_ok":
+                        self.run_count += 1
+                        logger.info(f"Battle #{self.run_count} completed.")
                     
                     time.sleep(SHORT_DELAY)
 

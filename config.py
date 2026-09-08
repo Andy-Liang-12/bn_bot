@@ -33,12 +33,12 @@ SKILL_COORDS = {
 TEMPLATES = {
     # Battle setup and flow
     "fight_button": {"category": "battle", "threshold": 0.92},
-    "finish_ok": {"category": "battle", "threshold": 0.92},
+    "finish_ok": {"category": "battle", "threshold": 0.85},
     # no reason to search for victory, assume defeat is impossible
     # "victory": {"category": "battle", "threshold": 0.85},
     # "defeat": {"category": "battle", "threshold": 0.85},
     "sp_ok": {"category": "battle", "threshold": 0.92},
-    "opp_tile": {"category": "battle", "threshold": 0.92},
+    # "opp_tile": {"category": "battle", "threshold": 0.92},
     "pass_active": {"category": "battle", "threshold": 0.92},
     "pass_inactive_gantas": {"category": "battle", "threshold": 0.92},
     "pass_inactive_sarin": {"category": "battle", "threshold": 0.92},
