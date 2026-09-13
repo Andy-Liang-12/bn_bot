@@ -20,7 +20,7 @@
     "troop_priority": [
         "heavy",
         "nomad",
-        "thresher",
+        "drill",
         "tk"
     ],
     "enemy_priority": [
@@ -31,18 +31,6 @@
         "heavy": [
             1,
             2
-        ],
-        "tk": [
-            1
-        ],
-        "heavy_tank": [
-            1
-        ],
-        "wimp": [
-            1
-        ],
-        "umg": [
-            1
         ]
     },
     "rewards": {

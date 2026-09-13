@@ -27,7 +27,7 @@ from template_matcher import TemplateMatcher, MatchResult
 EXIT_KEY = keyboard.Key.esc
 PAUSE_KEY = 'p'
 UNPAUSE_KEY = 'u'
-CENTER = [1234, 409] # Center of enemy side
+CENTER = (1234, 409) # Center of enemy side
 
 def setup_logging():
     # 1. Load settings (Assumes load_dotenv() was called before this!)

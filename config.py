@@ -54,6 +54,7 @@ TEMPLATES = {
     "mauler": {"category": "troops", "threshold": 0.90},
     "thresher": {"category": "troops", "threshold": 0.88},
     "nomad": {"category": "troops", "threshold": 0.90},
+    "drill": {"category": "troops", "threshold": 0.90},
 
     # Enemies
     "mammoth": {"category": "enemies", "threshold": 0.85},
@@ -84,7 +85,7 @@ def get_template_threshold(name: str) -> float:
     return TEMPLATES[name]["threshold"]
 
 
-def get_template_offset(name: str) -> Tuple[int, int]:
+def get_template_offset(name: str) -> tuple[int, int]:
     """Get the manual click offset for a template."""
     if name not in TEMPLATES:
         return (0, 0)

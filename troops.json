@@ -79,5 +79,12 @@
                 "type": "drag"
             }
         }
+    },
+    "drill": {
+        "skills": {
+            "1": {
+                "cooldown": 1
+            }
+        }
     }
 }
