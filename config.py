@@ -25,9 +25,9 @@ STUCK_DETECTION_THRESHOLD = 20.0
 
 # Hardcoded coordinates for skill buttons at the bottom of the screen
 SKILL_COORDS = {
-    "1": (466, 1117), # Optional: usually default, but can be used for explicit selection
-    "2": (628, 1118),
-    "3": (785, 1119)
+    "1": (477, 1175), # Optional: usually default, but can be used for explicit selection
+    "2": (640, 1175),
+    "3": (797, 1175)
 }
 
 TEMPLATES = {
@@ -55,6 +55,7 @@ TEMPLATES = {
     "thresher": {"category": "troops", "threshold": 0.88},
     "nomad": {"category": "troops", "threshold": 0.90},
     "drill": {"category": "troops", "threshold": 0.90},
+    "young_bigfoot": {"category": "troops", "threshold": 0.85},
 
     # Enemies
     "mammoth": {"category": "enemies", "threshold": 0.85},

@@ -120,6 +120,7 @@ class BattleStateMachine:
         self.deployed_troops = []  # List of dicts: {"name", "pos", "cooldowns", "has_acted"}
         self.troops_discovered = False
         self.was_animating = False # Used to detect turn transitions
+        self.awaiting_turn_start = False # Set when we click Pass; covers instant enemy-pass (no ANIMATING seen)
         self.pending_action = None # Used to confirm cooldowns only after animation starts
         
         # Performance Optimizations
@@ -288,6 +289,7 @@ class BattleStateMachine:
         logger.debug("--- Resetting battle state for new encounter ---")
         self.pending_action = None
         self.was_animating = False
+        self.awaiting_turn_start = False
 
         # Load a fresh copy of the initial moves queue
         self.initial_moves_queue = list(self.mission_config.get("initial_moves", []))
@@ -390,13 +392,29 @@ class BattleStateMachine:
             if screenshot is None: return
 
             new_state, match = self.determine_state(screenshot)
-            
+
+            # Turn Start Detection: fires exactly once per turn boundary, on
+            # whichever signal reaches EXECUTE_MOVE first.
+            #   - self.was_animating: we witnessed the ANIMATING state (normal case).
+            #   - self.awaiting_turn_start: we clicked Pass ourselves while exhausted;
+            #     covers the enemy-also-has-no-moves case, where the game can flip
+            #     back to pass_active instantly with no ANIMATING frame to poll.
+            # Checked every step (not just inside the state-change block below) so
+            # a same-state poll (state reads EXECUTE_MOVE on consecutive ticks with
+            # no detected change) still catches it. Both signals are cleared as
+            # soon as consumed, so a turn already started this way can't double-fire
+            # if the other signal also becomes true afterwards.
+            if new_state == BattleState.EXECUTE_MOVE and (self.was_animating or self.awaiting_turn_start):
+                self._on_turn_start()
+                self.was_animating = False
+                self.awaiting_turn_start = False
+
             # State Transition Logging
             if new_state != self.state:
                 match_name = match.name if match else "None"
                 roi_tag = " (ROI used)" if match and match.roi_used else ""
                 logger.info(f"State: {self.state.name} -> {new_state.name} (Trigger: {match_name}{roi_tag})")
-                
+
                 # Reset state when a new battle is detected
                 if new_state == BattleState.PRE_BATTLE:
                     self._reset_battle_state()
@@ -406,15 +424,11 @@ class BattleStateMachine:
                     troop = self.pending_action["troop"]
                     skill_id = self.pending_action["skill_id"]
                     base_cd = self.pending_action["base_cd"]
-                    
+
                     troop["cooldowns"][skill_id] = base_cd
                     logger.debug(f"  CONFIRMED: {troop['name']} Skill {skill_id} CD set to {base_cd}")
                     self.pending_action = None
 
-                # Turn Start Detection: Transitioning from Animating (Enemy) back to Move (Player)
-                if new_state == BattleState.EXECUTE_MOVE and self.was_animating:
-                    self._on_turn_start()
-                
                 self.was_animating = (new_state == BattleState.ANIMATING)
                 self.state = new_state
                 self.last_state_change = time.time()
@@ -475,6 +489,7 @@ class BattleStateMachine:
                     # If we reach here, all troops are exhausted
                     logger.debug("All troops exhausted. Passing turn.")
                     self.click_match(match)
+                    self.awaiting_turn_start = True
                     time.sleep(SHORT_DELAY)
                 else:
                     logger.debug("No enemies found. Clicked on anti-air unit?")

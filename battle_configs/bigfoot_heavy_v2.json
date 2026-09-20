@@ -11,9 +11,15 @@
             "type": "coordinate"
         },
         {
-            "troop": "nomad",
-            "skill": "1",
+            "troop": "heavy",
+            "skill": "2",
             "target": "sw_warrior",
+            "type": "template"
+        },
+        {
+            "troop": "young_bigfoot",
+            "skill": "2",
+            "target": "sw_striker",
             "type": "template"
         }
     ],
@@ -21,6 +27,7 @@
         "heavy",
         "nomad",
         "drill",
+        "young_bigfoot",
         "tk"
     ],
     "enemy_priority": [

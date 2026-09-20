@@ -58,7 +58,12 @@ class MatchTestApp:
                 elif key.char == COORD_KEY:
                     import pyautogui
                     x, y = pyautogui.position()
-                    logger.info(f"\n[CURSOR] Screen Coordinates: ({x}, {y})")
+                    region = self.window_capture.get_window_region()
+                    if region:
+                        left, top, _, _ = region
+                        logger.info(f"\n[CURSOR] Window-Relative: ({x - left}, {y - top})  (Screen: ({x}, {y}))")
+                    else:
+                        logger.info(f"\n[CURSOR] Screen Coordinates (window not found): ({x}, {y})")
                     return
             
             if key == keyboard.Key.esc:
