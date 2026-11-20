@@ -15,12 +15,6 @@
             "skill": "2",
             "target": "sw_warrior",
             "type": "template"
-        },
-        {
-            "troop": "young_bigfoot",
-            "skill": "2",
-            "target": "sw_striker",
-            "type": "template"
         }
     ],
     "troop_priority": [

@@ -65,6 +65,18 @@
             }
         }
     },
+    "apex_mauler": {
+        "skills": {
+            "1": {
+                "cooldown": 4,
+                "type": "drag"
+            },
+            "3": {
+                "cooldown": 5,
+                "type": "drag"
+            }
+        }
+    },
     "thresher": {
         "skills": {
             "1": {
@@ -94,6 +106,14 @@
         "skills": {
             "2": {
                 "cooldown": 4
+            }
+        }
+    },
+    "pelican": {
+        "skills": {
+            "1": {
+                "cooldown": 4,
+                "type": "drag"
             }
         }
     }

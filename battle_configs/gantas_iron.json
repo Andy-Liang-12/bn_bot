@@ -3,15 +3,7 @@
     "pass_button": "pass_inactive_gantas",
         "initial_moves": [
         {
-            "troop": "umg",
-            "skill": "1",
-            "target": [
-                1082, 483
-            ],
-            "type": "coordinate"
-        },
-        {
-            "troop": "umg",
+            "troop": "heavy",
             "skill": "1",
             "target": [
                 1082, 483
@@ -20,10 +12,8 @@
         }
     ],
     "troop_priority": [
-        "umg",
         "heavy",
-        "wimp",
-        "tk"
+        "drill"
     ],
     "enemy_priority": [
         "firebreather",

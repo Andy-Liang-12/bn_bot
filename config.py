@@ -17,9 +17,9 @@ SCREENSHOT_FORMAT = "png"
 TIMESTAMP_FORMAT = "%Y%m%d_%H%M%S"
 
 CLICK_DELAY = 0.07 # Time (s) to hold mouse down for a click
-SHORT_DELAY = 0.2
+SHORT_DELAY = 0.12
 LONG_DELAY = 0.8
-STATE_CHECK_INTERVAL = 0.2
+STATE_CHECK_INTERVAL = 0.15
 MAX_STATE_RETRIES = 10
 STUCK_DETECTION_THRESHOLD = 20.0
 
@@ -40,8 +40,8 @@ TEMPLATES = {
     "sp_ok": {"category": "battle", "threshold": 0.92},
     # "opp_tile": {"category": "battle", "threshold": 0.92},
     "pass_active": {"category": "battle", "threshold": 0.92},
-    "pass_inactive_gantas": {"category": "battle", "threshold": 0.92},
-    "pass_inactive_sarin": {"category": "battle", "threshold": 0.92},
+    "pass_inactive_gantas": {"category": "battle", "threshold": 0.95},
+    "pass_inactive_sarin": {"category": "battle", "threshold": 0.95},
 
     # Troops
     "heavy": {"category": "troops", "threshold": 0.90, "click_offset": (0, 10)},
@@ -56,6 +56,8 @@ TEMPLATES = {
     "nomad": {"category": "troops", "threshold": 0.90},
     "drill": {"category": "troops", "threshold": 0.90},
     "young_bigfoot": {"category": "troops", "threshold": 0.85},
+    "pelican": {"category": "troops", "threshold": 0.80},
+    "apex_mauler": {"category": "troops", "threshold": 0.88},
 
     # Enemies
     "mammoth": {"category": "enemies", "threshold": 0.85},

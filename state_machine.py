@@ -28,6 +28,7 @@ EXIT_KEY = keyboard.Key.esc
 PAUSE_KEY = 'p'
 UNPAUSE_KEY = 'u'
 CENTER = (1234, 409) # Center of enemy side
+# CENTER = (1082, 483)
 
 def setup_logging():
     # 1. Load settings (Assumes load_dotenv() was called before this!)
@@ -321,7 +322,7 @@ class BattleStateMachine:
         if skill_id != "1" and skill_id in SKILL_COORDS:
             logger.debug(f"Selecting Skill {skill_id} at {SKILL_COORDS[skill_id]}")
             self.click_coords(SKILL_COORDS[skill_id], f"Skill_{skill_id}")
-            time.sleep(SHORT_DELAY)
+            time.sleep(SHORT_DELAY-0.05)
 
         # 3. Execute attack on target
         if type == "click":

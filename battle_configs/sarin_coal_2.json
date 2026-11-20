@@ -1,0 +1,45 @@
+{
+    "mission_name": "sarin_coal",
+    "pass_button": "pass_inactive_sarin",
+    "initial_moves": [
+        {
+            "troop": "apex_mauler",
+            "skill": "1",
+            "target": [
+                1076, 485
+            ],
+            "type": "coordinate"
+        },
+        {
+            "troop": "heavy",
+            "skill": "1",
+            "target": [
+                1082, 483
+            ],
+            "type": "coordinate"
+        }
+    ],
+    "troop_priority": [
+        "heavy",
+        "apex_mauler"
+    ],
+    "enemy_priority": [
+        "raider_warrior",
+        "boom_boom"
+    ],
+    "skill_priorities": {
+        "heavy": [
+            1,
+            2
+        ],
+        "soldier": [
+            1
+        ]
+    },
+    "rewards": {
+        "gold": 785,
+        "stone": 8,
+        "wood": 5,
+        "coal": 20
+    }
+}
