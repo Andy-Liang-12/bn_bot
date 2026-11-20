@@ -22,6 +22,7 @@ LONG_DELAY = 0.8
 STATE_CHECK_INTERVAL = 0.15
 MAX_STATE_RETRIES = 10
 STUCK_DETECTION_THRESHOLD = 20.0
+RUN_TIMEOUT = 45.0 # Max time (s) between completed runs before conceding the battle
 
 # Hardcoded coordinates for skill buttons at the bottom of the screen
 SKILL_COORDS = {
@@ -34,6 +35,7 @@ TEMPLATES = {
     # Battle setup and flow
     "fight_button": {"category": "battle", "threshold": 0.92},
     "finish_ok": {"category": "battle", "threshold": 0.85},
+    "concede": {"category": "battle", "threshold": 0.90},
     # no reason to search for victory, assume defeat is impossible
     # "victory": {"category": "battle", "threshold": 0.85},
     # "defeat": {"category": "battle", "threshold": 0.85},

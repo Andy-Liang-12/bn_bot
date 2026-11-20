@@ -18,7 +18,7 @@ from pynput import keyboard
 from config import (
     STATE_CHECK_INTERVAL, SHORT_DELAY, 
     LONG_DELAY, CLICK_DELAY, STUCK_DETECTION_THRESHOLD,
-    SKILL_COORDS
+    SKILL_COORDS, RUN_TIMEOUT
 )
 from window_capture import WindowCapture
 from template_matcher import TemplateMatcher, MatchResult
@@ -84,7 +84,10 @@ class BattleStateMachine:
         self.running = False
         self.paused = False
         self.run_count = 0
-        
+        self.concede_count = 0
+        self.last_run_time = time.time() # Reset on each completed run; drives the concede timeout
+        self.conceded = False # Set when we concede so the defeat screen isn't counted as a run
+
         # Determine mission config path from environment or default
         mission_config = os.getenv("MISSION_CONFIG")
         if mission_config is None:
@@ -155,6 +158,7 @@ class BattleStateMachine:
                 print("\n!! Bot PAUSED. Press 'u' to resume.")
             elif char == UNPAUSE_KEY and self.paused:
                 self.paused = False
+                self.last_run_time = time.time() # Don't count paused time toward the run timeout
                 logger.info("Bot RESUMED.")
                 print("\n>> Bot RESUMED.")
 
@@ -291,6 +295,7 @@ class BattleStateMachine:
         self.pending_action = None
         self.was_animating = False
         self.awaiting_turn_start = False
+        self.conceded = False
 
         # Load a fresh copy of the initial moves queue
         self.initial_moves_queue = list(self.mission_config.get("initial_moves", []))
@@ -382,6 +387,26 @@ class BattleStateMachine:
         else:
             logger.warning(f"Opener target {target} not found! Skipping move.")
 
+    def _concede(self, screenshot: np.ndarray) -> bool:
+        """Give up on a stuck battle by clicking the white flag. Returns True if clicked."""
+        match = self.matcher.match_template(screenshot, "concede")
+        if not match:
+            logger.debug("Run timed out but concede button not visible. Continuing normal step.")
+            return False
+
+        elapsed = time.time() - self.last_run_time
+        logger.warning(f"No run completed in {elapsed:.0f}s (limit {RUN_TIMEOUT:.0f}s). Conceding battle.")
+        # First click opens the retreat prompt, second click confirms it
+        self.click_match(match)
+        time.sleep(2 * SHORT_DELAY)
+        self.click_match(match)
+        self.concede_count += 1
+        self.conceded = True
+        self.pending_action = None
+        # Restart the timer so we retry after another full timeout if the click didn't take
+        self.last_run_time = time.time()
+        time.sleep(LONG_DELAY)
+        return True
 
     def step(self):
         """Main Observe-Think-Act iteration."""
@@ -391,6 +416,10 @@ class BattleStateMachine:
         try:
             screenshot = self.window_capture.capture()
             if screenshot is None: return
+
+            # Hang/desync failsafe: concede if a run takes too long
+            if time.time() - self.last_run_time > RUN_TIMEOUT and self._concede(screenshot):
+                return
 
             new_state, match = self.determine_state(screenshot)
 
@@ -507,8 +536,13 @@ class BattleStateMachine:
                     
                     # Increment run count
                     if match.name == "finish_ok":
-                        self.run_count += 1
-                        logger.info(f"Battle #{self.run_count} completed.")
+                        self.last_run_time = time.time()
+                        if self.conceded:
+                            self.conceded = False
+                            logger.info(f"Conceded battle closed ({self.concede_count} conceded so far).")
+                        else:
+                            self.run_count += 1
+                            logger.info(f"Battle #{self.run_count} completed.")
                     
                     time.sleep(SHORT_DELAY)
 
@@ -535,6 +569,7 @@ class BattleStateMachine:
         print("BATTLE SUMMARY")
         print("=" * 60)
         print(f"Total Runs: {self.run_count}")
+        print(f"Conceded Runs: {self.concede_count}")
         print(f"Elapsed Time: {hours:02d}:{minutes:02d}:{seconds:02d}")
         print(f"Average Time per Run: {duration / self.run_count:.2f} seconds" if self.run_count > 0 else "Average Time per Run: N/A")
         print("-" * 60)
